@@ -20,6 +20,7 @@ import (
 
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/encoding"
+
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/internal/metrics"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/internal/utils"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/rpc"
@@ -306,6 +307,19 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 			if err != nil {
 				return fmt.Errorf("failed to encode transactions: %w", err)
 			}
+
+			if len(txs) != 0 {
+				// TODO: submit it to the precofirmations gateway and
+				// check if the response contains anything useful
+
+				pr := NewPreconfer(gCtx, p.rpc)
+				pr.BuildVirtualBlock(gCtx, txs)
+				log.Info("Proposer: build virtual block for L1 preconfirmation of TXs:", "size", len(txs))
+			}
+
+			// TODO: for debugging
+			time.Sleep(15 * time.Second)
+
 			if err := p.ProposeTxList(gCtx, txListBytes, uint(txs.Len())); err != nil {
 				return err
 			}
