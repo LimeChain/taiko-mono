@@ -155,6 +155,7 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 func (p *Proposer) Start() error {
 	p.wg.Add(1)
 	go p.eventLoop()
+	go p.StartL2Preconfirmations()
 	return nil
 }
 
@@ -263,6 +264,38 @@ func (p *Proposer) fetchPoolContent(filterPoolContent bool) ([]types.Transaction
 	return txLists, nil
 }
 
+func (p *Proposer) fetchPreconfirmedTxs() ([]types.Transactions, error) {
+	virtualBlockTxs, err := p.rpc.PreconfirmedTxs(p.ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch virtual block txs: %w", err)
+	}
+
+	txLists := []types.Transactions{}
+	for _, virtualTxList := range virtualBlockTxs {
+		if len(virtualTxList.TxList) > 0 {
+			txLists = append(txLists, virtualTxList.TxList[1:]) // exclude anchor tx
+		}
+	}
+
+	return txLists, nil
+}
+
+func (p *Proposer) fetchProposePreconfirmedTxs() ([]types.Transactions, error) {
+	virtualBlockTxs, err := p.rpc.ProposePreconfirmedTxs(p.ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch virtual block txs: %w", err)
+	}
+
+	txLists := []types.Transactions{}
+	for _, virtualTxList := range virtualBlockTxs {
+		if len(virtualTxList.TxList) > 0 {
+			txLists = append(txLists, virtualTxList.TxList[1:]) // exclude anchor tx
+		}
+	}
+
+	return txLists, nil
+}
+
 // ProposeOp performs a proposing operation, fetching transactions
 // from L2 execution engine's tx pool, splitting them by proposing constraints,
 // and then proposing them to TaikoL1 contract.
@@ -281,7 +314,7 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 		"lastProposedAt", p.lastProposedAt,
 	)
 
-	txLists, err := p.fetchPoolContent(filterPoolContent)
+	txLists, err := p.fetchProposePreconfirmedTxs()
 	if err != nil {
 		return err
 	}
@@ -307,18 +340,6 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 			if err != nil {
 				return fmt.Errorf("failed to encode transactions: %w", err)
 			}
-
-			if len(txs) != 0 {
-				// TODO: submit it to the precofirmations gateway and
-				// check if the response contains anything useful
-
-				pr := NewPreconfer(gCtx, p.rpc)
-				pr.BuildVirtualBlock(gCtx, txs)
-				log.Info("Proposer: build virtual block for L1 preconfirmation of TXs:", "size", len(txs))
-			}
-
-			// TODO: for debugging
-			time.Sleep(15 * time.Second)
 
 			if err := p.ProposeTxList(gCtx, txListBytes, uint(txs.Len())); err != nil {
 				return err
@@ -368,6 +389,10 @@ func (p *Proposer) ProposeTxList(
 
 	if receipt.Status != types.ReceiptStatusSuccessful {
 		return fmt.Errorf("failed to propose block: %s", receipt.TxHash.Hex())
+	}
+
+	if err = p.rpc.L2.DeletePendingVirtualBlock(ctx); err != nil {
+		return fmt.Errorf("failed to delete proposed preconfirmed block: %s", err)
 	}
 
 	log.Info("📝 Propose transactions succeeded", "txs", txNum)
