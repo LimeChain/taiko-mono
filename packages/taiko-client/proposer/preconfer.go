@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/sync/errgroup"
 	"math/big"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/beacon/engine"
@@ -20,6 +21,7 @@ import (
 	anchorTxConstructor "github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/anchor_tx_constructor"
 )
 
+// StartL2Preconfirmations rebuilds preconfirmation blocks with the latest pool txs.
 func (p *Proposer) StartL2Preconfirmations() {
 	for {
 		time.Sleep(5 * time.Second)
@@ -33,20 +35,21 @@ func (p *Proposer) StartL2Preconfirmations() {
 		}
 
 		if len(poolTxs) == 0 {
-			log.Debug("Skipping preconfirmed block creation, no pool txs")
+			log.Debug("Skipping preconfirmation block rebuild, no pool txs")
 			continue
 		}
 
-		log.Debug("Current pool txs", "poolTxs", len(poolTxs))
-		log.Debug("Current first pool tx list txs", "pool 0 txs", len(poolTxs[0]))
+		log.Debug("Current pool tx list", "count", len(poolTxs))
+		log.Debug("Current first pool tx list", "txs", len(poolTxs[0]))
 
 		preconfirmedTxs, err := p.fetchPreconfirmedTxs()
 		if err != nil {
 			log.Error("Failed fetching preconfirmed block transactions", "error", err)
 			continue
 		}
+		log.Debug("Preconfirmed tx lists", "length", len(preconfirmedTxs))
 
-		// TODO: handle multiple tx lists
+		// TODO(limechain): handle multiple tx lists
 
 		var txs types.Transactions
 		if len(preconfirmedTxs) > 0 {
@@ -54,13 +57,13 @@ func (p *Proposer) StartL2Preconfirmations() {
 		}
 
 		txs = append(txs, poolTxs[0]...)
-		log.Debug("Txs for processing", "txs", len(txs))
+		log.Debug("Txs for processing", "length", len(txs))
 
 		g, gCtx := errgroup.WithContext(p.ctx)
 
 		g.Go(func() error {
-			if err := p.BuildVirtualBlock(gCtx, txs); err != nil {
-				log.Error("Failed to build virtual block", "error", err)
+			if err := p.BuildPreconfBlock(gCtx, txs); err != nil {
+				log.Error("Failed to build preconfirmation block", "error", err)
 				return err
 			}
 			return nil
@@ -68,17 +71,31 @@ func (p *Proposer) StartL2Preconfirmations() {
 	}
 }
 
-// builds virtual block that provides pre-confirmation receipts for the contained TXs.
-func (p *Proposer) BuildVirtualBlock(ctx context.Context, txList types.Transactions) error {
+// BuildPreconfBlock builds virtual block that provides pre-confirmation receipts for the contained TXs.
+func (p *Proposer) BuildPreconfBlock(ctx context.Context, txList types.Transactions) error {
 	var (
-		l2Head *types.Header
-		err    error
+		l2Head   *types.Header
+		pbCursor *types.PreconfBlockCursor
+		err      error
 	)
 	l2Head, err = p.rpc.L2.HeaderByNumber(ctx, nil)
 	if err != nil {
 		return err
 	}
-	log.Info("Preconfer: l2 head", "number", l2Head.Number, "hash", l2Head.Hash())
+	log.Info("preconfer: l2 head", "number", l2Head.Number, "hash", l2Head.Hash())
+
+	// Mark any pre-confirmed transactions that are already executed to be
+	// skipped in the next pre-confirmation block rebuild.
+	if pbCursor, err = p.rpc.L2.GetPreconfBlockCursor(ctx); err != nil {
+		return fmt.Errorf("failed to get preconfirmation block cursor: %s", err)
+	}
+	if pbCursor != nil && (l2Head.Number.Uint64() > pbCursor.Number) {
+		skip := true
+		if err = p.rpc.L2.UpdatePreconfBlockCursor(ctx, &pbCursor.Hash, new(big.Int).SetUint64(pbCursor.Number), new(big.Int).SetUint64(pbCursor.ProposedTxCount), &skip); err != nil {
+			return fmt.Errorf("failed to update preconfirmation block cursor: %s", err)
+		}
+		return nil
+	}
 
 	// parameters of the TaikoL2.anchor transaction
 	l1Origin, err := p.rpc.L2.HeadL1Origin(ctx)
@@ -94,7 +111,7 @@ func (p *Proposer) BuildVirtualBlock(ctx context.Context, txList types.Transacti
 		uint32(l2Head.GasUsed),
 	)
 	if err != nil {
-		return fmt.Errorf("Preconfer: failed to get L2 baseFee: %w", encoding.TryParsingCustomError(err))
+		return fmt.Errorf("preconfer: failed to get L2 baseFee: %w", encoding.TryParsingCustomError(err))
 	}
 
 	anchorConstructor, err := anchorTxConstructor.New(p.rpc)
@@ -110,7 +127,7 @@ func (p *Proposer) BuildVirtualBlock(ctx context.Context, txList types.Transacti
 		l2Head.GasUsed,
 	)
 	if err != nil {
-		return fmt.Errorf("Preconfer: failed to create TaikoL2.anchor transaction: %w", err)
+		return fmt.Errorf("preconfer: failed to create TaikoL2.anchor transaction: %w", err)
 	}
 	log.Info("Anchor tx", "hash", anchorTx.Hash().String())
 
@@ -118,7 +135,7 @@ func (p *Proposer) BuildVirtualBlock(ctx context.Context, txList types.Transacti
 	txList = append([]*types.Transaction{anchorTx}, txList...)
 	txListBytes, err := rlp.EncodeToBytes(txList)
 	if err != nil {
-		return fmt.Errorf("Preconfer: failed to encode transactions: %w", err)
+		return fmt.Errorf("preconfer: failed to encode transactions: %w", err)
 	}
 
 	fc := &engine.ForkchoiceStateV1{HeadBlockHash: l2Head.Hash()}
@@ -147,23 +164,23 @@ func (p *Proposer) BuildVirtualBlock(ctx context.Context, txList types.Transacti
 			L1BlockHeight: l1Height,
 			L1BlockHash:   l1Hash,
 		},
-		VirtualBlock: true,
+		PreconfBlock: true,
 	}
 
 	// Start building payload
-	log.Debug("Preconfer: start building payload")
+	log.Debug("preconfer: start building payload")
 	fcRes, err := p.rpc.L2Engine.ForkchoiceUpdate(ctx, fc, attributes)
 	if err != nil {
-		log.Debug("Preconfer: failed to update fork choice")
-		return fmt.Errorf("Preconfer: failed to update fork choice: %w", err)
+		log.Debug("preconfer: failed to update fork choice")
+		return fmt.Errorf("preconfer: failed to update fork choice: %w", err)
 	}
 	if fcRes.PayloadStatus.Status != engine.VALID {
 		log.Debug("Preconfer: unexpected ForkchoiceUpdate response status")
-		return fmt.Errorf("Preconfer: unexpected ForkchoiceUpdate response status: %s", fcRes.PayloadStatus.Status)
+		return fmt.Errorf("preconfer: unexpected ForkchoiceUpdate response status: %s", fcRes.PayloadStatus.Status)
 	}
 	if fcRes.PayloadID == nil {
 		log.Debug("Preconfer: empty payload ID")
-		return errors.New("Preconfer: empty payload ID")
+		return errors.New("preconfer: empty payload ID")
 	}
 
 	// Get the built payload
@@ -171,18 +188,18 @@ func (p *Proposer) BuildVirtualBlock(ctx context.Context, txList types.Transacti
 	payload, err := p.rpc.L2Engine.GetPayload(ctx, fcRes.PayloadID)
 	if err != nil {
 		log.Debug("Preconfer: failed to get payload")
-		return fmt.Errorf("Preconfer: failed to get payload: %w", err)
+		return fmt.Errorf("preconfer: failed to get payload: %w", err)
 	}
 
 	// Execute the payload
-	log.Debug("Preconfer: execute the payload", "block hash", payload.BlockHash.String(), "txs", len(payload.Transactions))
+	log.Debug("preconfer: execute the payload", "block hash", payload.BlockHash.String(), "txs", len(payload.Transactions))
 	execStatus, err := p.rpc.L2Engine.NewPayload(ctx, payload)
 	if err != nil {
-		log.Debug("Preconfer: failed to create a new payload")
-		return fmt.Errorf("Preconfer: failed to create a new payload: %w", err)
+		log.Debug("preconfer: failed to create a new payload")
+		return fmt.Errorf("preconfer: failed to create a new payload: %w", err)
 	}
 	if execStatus.Status != engine.VALID {
-		return fmt.Errorf("Preconfer: unexpected NewPayload response status: %s", execStatus.Status)
+		return fmt.Errorf("preconfer: unexpected NewPayload response status: %s", execStatus.Status)
 	}
 
 	// fc := &engine.ForkchoiceStateV1{
@@ -200,12 +217,13 @@ func (p *Proposer) BuildVirtualBlock(ctx context.Context, txList types.Transacti
 	// 	return nil, fmt.Errorf("Preconfer: unexpected ForkchoiceUpdate response status: %s", fcRes.PayloadStatus.Status)
 	// }
 
-	_, err = p.rpc.L2.UpdatePendingVirtualBlock(ctx, payload.BlockHash, new(big.Int).SetUint64(payload.Number))
+	// TODO: move this as part of the payload execution
+	err = p.rpc.L2.UpdatePreconfBlockCursor(ctx, &payload.BlockHash, new(big.Int).SetUint64(payload.Number), new(big.Int), new(bool))
 	if err != nil {
-		return fmt.Errorf("Preconfer: failed to update Preconfirmed VirtualBlock: %w", err)
+		return fmt.Errorf("preconfer: failed to update preconfirmation block: %w", err)
 	}
 
-	log.Debug("Preconfer: payload", "hash", payload.BlockHash.String(), "txs", len(payload.Transactions))
+	log.Debug("preconfer: payload", "hash", payload.BlockHash.String(), "txs", len(payload.Transactions))
 
 	return nil
 }

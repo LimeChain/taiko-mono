@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math/big"
 	"math/rand"
 	"sync"
 	"time"
@@ -265,13 +266,13 @@ func (p *Proposer) fetchPoolContent(filterPoolContent bool) ([]types.Transaction
 }
 
 func (p *Proposer) fetchPreconfirmedTxs() ([]types.Transactions, error) {
-	virtualBlockTxs, err := p.rpc.PreconfirmedTxs(p.ctx)
+	preconfirmedBlockTxs, err := p.rpc.PreconfirmedTxs(p.ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch virtual block txs: %w", err)
+		return nil, fmt.Errorf("failed to fetch preconfirmation block txs: %w", err)
 	}
 
 	txLists := []types.Transactions{}
-	for _, virtualTxList := range virtualBlockTxs {
+	for _, virtualTxList := range preconfirmedBlockTxs {
 		if len(virtualTxList.TxList) > 0 {
 			txLists = append(txLists, virtualTxList.TxList[1:]) // exclude anchor tx
 		}
@@ -281,13 +282,13 @@ func (p *Proposer) fetchPreconfirmedTxs() ([]types.Transactions, error) {
 }
 
 func (p *Proposer) fetchProposePreconfirmedTxs() ([]types.Transactions, error) {
-	virtualBlockTxs, err := p.rpc.ProposePreconfirmedTxs(p.ctx)
+	preconfirmedBlockTxs, err := p.rpc.ProposePreconfirmedTxs(p.ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch virtual block txs: %w", err)
+		return nil, fmt.Errorf("failed to fetch preconfirmation block txs: %w", err)
 	}
 
 	txLists := []types.Transactions{}
-	for _, virtualTxList := range virtualBlockTxs {
+	for _, virtualTxList := range preconfirmedBlockTxs {
 		if len(virtualTxList.TxList) > 0 {
 			txLists = append(txLists, virtualTxList.TxList[1:]) // exclude anchor tx
 		}
@@ -391,9 +392,14 @@ func (p *Proposer) ProposeTxList(
 		return fmt.Errorf("failed to propose block: %s", receipt.TxHash.Hex())
 	}
 
-	if err = p.rpc.L2.DeletePendingVirtualBlock(ctx); err != nil {
-		return fmt.Errorf("failed to delete proposed preconfirmed block: %s", err)
+	log.Debug("Proposing before update preconf cursor")
+	// Update the preconfirmation block cursor to keep track of how many of the txs are proposed. So later
+	// once executed, we can mark them to not be included in the next rebuild of the pre-confirmation block.
+	proposedTxCount := big.NewInt(int64(txNum))
+	if err = p.rpc.L2.UpdatePreconfBlockCursor(ctx, new(common.Hash), new(big.Int), proposedTxCount, new(bool)); err != nil {
+		return fmt.Errorf("failed to update proposed preconfirmed block: %s", err)
 	}
+	log.Debug("Proposing after update preconf cursor")
 
 	log.Info("📝 Propose transactions succeeded", "txs", txNum)
 

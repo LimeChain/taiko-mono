@@ -296,7 +296,7 @@ func (c *Client) GetPoolContent(
 	)
 }
 
-// PreconfirmedTxs fetches the preconfirmed transactions from L2 execution engine's virtual block.
+// PreconfirmedTxs fetches the preconfirmed transactions from L2 execution engine's preconfirmed block.
 func (c *Client) PreconfirmedTxs(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
 	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, defaultTimeout)
 	defer cancel()
@@ -304,7 +304,7 @@ func (c *Client) PreconfirmedTxs(ctx context.Context) ([]*miner.PreBuiltTxList, 
 	return c.L2Engine.PreconfirmedTxs(ctxWithTimeout)
 }
 
-// ProposePreconfirmedTxs fetches the proposed preconfirmed transactions from L2 execution engine's virtual block.
+// ProposePreconfirmedTxs fetches the proposed preconfirmed transactions from L2 execution engine's preconfirmed block.
 func (c *Client) ProposePreconfirmedTxs(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
 	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, defaultTimeout)
 	defer cancel()
