@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math/big"
 	"math/rand"
 	"sync"
 	"time"
@@ -148,6 +149,102 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 		)
 	}
 
+	// Register the sequencer
+	err = p.registerSequencer()
+	if err != nil {
+		log.Error("failed to register sequencer", "error", err)
+		return err
+	}
+
+	// Stake the sequencer
+	err = p.stakeSequencer(crypto.FromECDSAPub(&cfg.L1ProposerPrivKey.PublicKey))
+	if err != nil {
+		log.Error("failed to stake sequencer", "error", err)
+		return err
+	}
+
+	return nil
+}
+
+func (p *Proposer) registerSequencer() error {
+	auth, err := bind.NewKeyedTransactorWithChainID(p.Config.L1ProposerPrivKey, p.rpc.L1.ChainID)
+	if err != nil {
+		log.Error("failed to create transactor", "error", err)
+		return err
+	}
+
+	tx, err := p.rpc.SequencerRegistry.Register(
+		auth,
+		p.proposerAddress,
+		[]byte{},   // Placeholder
+		[32]byte{}, // Placeholder
+		[]byte{},   // Placeholder
+		bindings.ISequencerRegistryValidatorProof{
+			CurrentEpoch:    0,             // Placeholder
+			ActivationEpoch: 0,             // Placeholder
+			ExitEpoch:       0,             // Placeholder
+			ValidatorIndex:  big.NewInt(0), // Placeholder
+			Slashed:         false,         // Placeholder
+			ProofSlot:       big.NewInt(0), // Placeholder
+			SszProof:        []byte{},      // Placeholder
+		},
+	)
+	if err != nil {
+		log.Error("failed to register sequencer in the registry", "error", err)
+		return err
+	}
+
+	receipt, err := bind.WaitMined(p.ctx, p.rpc.L1, tx)
+	if err != nil {
+		log.Error("transaction mining error", "error", err)
+		return err
+	}
+	if receipt.Status != 1 {
+		log.Error("transaction failed", "error", err)
+		return err
+	}
+
+	log.Info("Sequencer registered successfully")
+	return nil
+}
+
+func (p *Proposer) stakeSequencer(publicKey []byte) error {
+	auth, err := bind.NewKeyedTransactorWithChainID(p.Config.L1ProposerPrivKey, p.rpc.L1.ChainID)
+	if err != nil {
+		log.Error("failed to create transactor", "error", err)
+		return err
+	}
+	auth.Value = big.NewInt(1e18) // Staking 1 ETH
+
+	tx, err := p.rpc.TaikoL1.StakeSequencer(
+		auth,
+		make([]byte, 48), // publicKey
+		bindings.ISequencerRegistryValidatorProof{
+			CurrentEpoch:    0,             // Placeholder
+			ActivationEpoch: 0,             // Placeholder
+			ExitEpoch:       0,             // Placeholder
+			ValidatorIndex:  big.NewInt(0), // Placeholder
+			Slashed:         false,         // Placeholder
+			ProofSlot:       big.NewInt(0), // Placeholder
+			SszProof:        []byte{},      // Placeholder
+		},
+	)
+	if err != nil {
+		log.Error("failed to stake sequencer", "error", err)
+		return err
+	}
+
+	receipt, err := bind.WaitMined(p.ctx, p.rpc.L1, tx)
+	if err != nil {
+		log.Error("transaction mining error", "error", err)
+		return err
+	}
+	if receipt.Status != 1 {
+		log.Error("transaction failed", "error", err)
+		return err
+	}
+
+	log.Info("Sequencer staked successfully")
 	return nil
 }
 

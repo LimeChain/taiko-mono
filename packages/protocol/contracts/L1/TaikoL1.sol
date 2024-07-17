@@ -8,6 +8,9 @@ import "./libs/LibVerifying.sol";
 import "./ITaikoL1.sol";
 import "./TaikoErrors.sol";
 import "./TaikoEvents.sol";
+import "./TaikoStake.sol";
+import "./TaikoProposer.sol";
+import "./ISequencerRegistry.sol";
 
 /// @title TaikoL1
 /// @notice This contract serves as the "base layer contract" of the Taiko protocol, providing
@@ -18,7 +21,14 @@ import "./TaikoEvents.sol";
 /// by the Bridge contract.
 /// @dev Labeled in AddressResolver as "taiko"
 /// @custom:security-contact security@taiko.xyz
-contract TaikoL1 is EssentialContract, ITaikoL1, TaikoEvents, TaikoErrors {
+contract TaikoL1 is
+    EssentialContract,
+    ITaikoL1,
+    TaikoEvents,
+    TaikoErrors,
+    TaikoStake,
+    TaikoProposer
+{
     /// @notice The TaikoL1 state.
     TaikoData.State public state;
 
@@ -64,6 +74,19 @@ contract TaikoL1 is EssentialContract, ITaikoL1, TaikoEvents, TaikoErrors {
         state.slotB.__reservedB2 = 0;
         state.slotB.__reservedB3 = 0;
         state.__reserve1 = 0;
+    }
+
+    function stakeSequencer(
+        bytes calldata pubkey,
+        ISequencerRegistry.ValidatorProof calldata validatorProof
+    )
+        external
+        payable
+    {
+        ISequencerRegistry sequencerRegistry =
+            ISequencerRegistry(resolve(LibStrings.B_SEQUENCER_REGISTRY, false));
+
+        TaikoStake._stakeSequencer(sequencerRegistry, pubkey, validatorProof);
     }
 
     /// @inheritdoc ITaikoL1

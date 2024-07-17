@@ -29,6 +29,13 @@ var (
 		Category: proposerCategory,
 		EnvVars:  []string{"L2_SUGGESTED_FEE_RECIPIENT"},
 	}
+	SequencerRegistryAddress = &cli.StringFlag{
+		Name:     "sequencerRegistry",
+		Usage:    "SequencerRegistry contract `address`",
+		Required: true,
+		Category: commonCategory,
+		EnvVars:  []string{"SEQUENCER_REGISTRY"},
+	}
 )
 
 // Optional flags used by proposer.
@@ -165,4 +172,5 @@ var ProposerFlags = MergeFlags(CommonFlags, []cli.Flag{
 	ProposeBlockIncludeParentMetaHash,
 	BlobAllowed,
 	L1BlockBuilderTip,
+	SequencerRegistryAddress,
 }, TxmgrFlags)
