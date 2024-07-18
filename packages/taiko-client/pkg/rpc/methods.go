@@ -14,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/miner"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings"
@@ -246,16 +245,15 @@ func (c *Client) WaitL2Header(ctx context.Context, blockID *big.Int) (*types.Hea
 	return nil, fmt.Errorf("failed to fetch block header from L2 execution engine, blockID: %d", blockID)
 }
 
-// GetPoolContent fetches the transactions list from L2 execution engine's transactions pool with given
-// upper limit.
-func (c *Client) GetPoolContent(
+// BuildTxList prepares list of transactions to be fetched for proposing.
+func (c *Client) BuildTxList(
 	ctx context.Context,
 	beneficiary common.Address,
 	blockMaxGasLimit uint32,
 	maxBytesPerTxList uint64,
 	locals []common.Address,
 	maxTransactionsLists uint64,
-) ([]*miner.PreBuiltTxList, error) {
+) ([]*types.PreBuiltTxList, error) {
 	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, defaultTimeout)
 	defer cancel()
 
@@ -285,7 +283,57 @@ func (c *Client) GetPoolContent(
 		localsArg = append(localsArg, local.Hex())
 	}
 
-	return c.L2Engine.TxPoolContent(
+	return c.L2Engine.BuildTxList(
+		ctxWithTimeout,
+		beneficiary,
+		baseFeeInfo.Basefee,
+		uint64(blockMaxGasLimit),
+		maxBytesPerTxList,
+		localsArg,
+		maxTransactionsLists,
+	)
+}
+
+// FetchTxListToPropose fetches the transactions list from L2 execution engine's transactions pool with given
+// upper limit.
+func (c *Client) FetchTxList(
+	ctx context.Context,
+	beneficiary common.Address,
+	blockMaxGasLimit uint32,
+	maxBytesPerTxList uint64,
+	locals []common.Address,
+	maxTransactionsLists uint64,
+) ([]*types.PreBuiltTxList, error) {
+	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, defaultTimeout)
+	defer cancel()
+
+	l1Head, err := c.L1.HeaderByNumber(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	l2Head, err := c.L2.HeaderByNumber(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	baseFeeInfo, err := c.TaikoL2.GetBasefee(
+		&bind.CallOpts{Context: ctx},
+		l1Head.Number.Uint64(),
+		uint32(l2Head.GasUsed),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info("Current base fee", "fee", utils.WeiToGWei(baseFeeInfo.Basefee))
+
+	var localsArg []string
+	for _, local := range locals {
+		localsArg = append(localsArg, local.Hex())
+	}
+
+	return c.L2Engine.FetchTxList(
 		ctxWithTimeout,
 		beneficiary,
 		baseFeeInfo.Basefee,

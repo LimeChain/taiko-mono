@@ -27,7 +27,7 @@ import (
 	builder "github.com/taikoxyz/taiko-mono/packages/taiko-client/proposer/transaction_builder"
 )
 
-// Proposer keep proposing new transactions from L2 execution engine's tx pool at a fixed interval.
+// Proposer keep proposing new transactions from L2 execution engine at a fixed interval.
 type Proposer struct {
 	// configurations
 	*Config
@@ -152,9 +152,36 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 
 // Start starts the proposer's main loop.
 func (p *Proposer) Start() error {
-	p.wg.Add(1)
+	p.wg.Add(2)
+	go p.buildTxList()
 	go p.eventLoop()
 	return nil
+}
+
+func (p *Proposer) buildTxList() {
+	defer p.wg.Done()
+
+	for {
+		select {
+		case <-p.ctx.Done():
+			return
+		default:
+			time.Sleep(5 * time.Second)
+
+			_, err := p.rpc.BuildTxList(
+				p.ctx,
+				p.proposerAddress,
+				p.protocolConfigs.BlockMaxGasLimit,
+				rpc.BlockMaxTxListBytes,
+				p.LocalAddresses,
+				p.MaxProposedTxListsPerEpoch,
+			)
+			if err != nil {
+				log.Error("Building tx list error", "error", err)
+				continue
+			}
+		}
+	}
 }
 
 // eventLoop starts the main loop of Taiko proposer.
@@ -188,10 +215,9 @@ func (p *Proposer) Close(_ context.Context) {
 	p.wg.Wait()
 }
 
-// fetchPoolContent fetches the transaction pool content from L2 execution engine.
-func (p *Proposer) fetchPoolContent(filterPoolContent bool) ([]types.Transactions, error) {
-	// Fetch the pool content.
-	preBuiltTxList, err := p.rpc.GetPoolContent(
+// fetchTxListToPropose fetches prebuilt list of transactions from L2 execution engine.
+func (p *Proposer) fetchTxListToPropose(filterPoolContent bool) ([]types.Transactions, error) {
+	preBuiltTxLists, err := p.rpc.FetchTxList(
 		p.ctx,
 		p.proposerAddress,
 		p.protocolConfigs.BlockMaxGasLimit,
@@ -204,20 +230,20 @@ func (p *Proposer) fetchPoolContent(filterPoolContent bool) ([]types.Transaction
 	}
 
 	txLists := []types.Transactions{}
-	for i, txs := range preBuiltTxList {
+	for i, prebuiltTxList := range preBuiltTxLists {
 		// Filter the pool content if the filterPoolContent flag is set.
-		if txs.EstimatedGasUsed < p.MinGasUsed && txs.BytesLength < p.MinTxListBytes && filterPoolContent {
+		if prebuiltTxList.EstimatedGasUsed < p.MinGasUsed && prebuiltTxList.BytesLength < p.MinTxListBytes && filterPoolContent {
 			log.Info(
 				"Pool content skipped",
 				"index", i,
-				"estimatedGasUsed", txs.EstimatedGasUsed,
+				"estimatedGasUsed", prebuiltTxList.EstimatedGasUsed,
 				"minGasUsed", p.MinGasUsed,
-				"bytesLength", txs.BytesLength,
+				"bytesLength", prebuiltTxList.BytesLength,
 				"minBytesLength", p.MinTxListBytes,
 			)
 			break
 		}
-		txLists = append(txLists, txs.TxList)
+		txLists = append(txLists, prebuiltTxList.TxList)
 	}
 	// If the pool content is empty and the checkPoolContent flag is not set, return an empty list.
 	if !filterPoolContent && len(txLists) == 0 {
@@ -257,7 +283,7 @@ func (p *Proposer) fetchPoolContent(filterPoolContent bool) ([]types.Transaction
 		txLists = localTxsLists
 	}
 
-	log.Info("Transactions lists count", "count", len(txLists))
+	log.Info("Transaction lists", "size", len(txLists))
 
 	return txLists, nil
 }
@@ -280,7 +306,7 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 		"lastProposedAt", p.lastProposedAt,
 	)
 
-	txLists, err := p.fetchPoolContent(filterPoolContent)
+	txLists, err := p.fetchTxListToPropose(filterPoolContent)
 	if err != nil {
 		return err
 	}
@@ -289,6 +315,8 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 	if len(txLists) == 0 {
 		return nil
 	}
+
+	log.Warn("Tx list content", "txs", txLists)
 
 	g, gCtx := errgroup.WithContext(ctx)
 	// Propose all L2 transactions lists.
