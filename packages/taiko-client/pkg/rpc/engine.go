@@ -7,7 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/miner"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/rpc"
 )
@@ -99,8 +99,7 @@ func (c *EngineClient) ExchangeTransitionConfiguration(
 	return result, nil
 }
 
-// TxPoolContent fetches the transaction pool content from the L2 execution engine.
-func (c *EngineClient) TxPoolContent(
+func (c *EngineClient) BuildTxList(
 	ctx context.Context,
 	beneficiary common.Address,
 	baseFee *big.Int,
@@ -108,15 +107,44 @@ func (c *EngineClient) TxPoolContent(
 	maxBytesPerTxList uint64,
 	locals []string,
 	maxTransactionsLists uint64,
-) ([]*miner.PreBuiltTxList, error) {
+) ([]*types.PreBuiltTxList, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
-	var result []*miner.PreBuiltTxList
+	var result []*types.PreBuiltTxList
 	if err := c.CallContext(
 		timeoutCtx,
 		&result,
-		"taikoAuth_txPoolContent",
+		"taikoAuth_buildTxList",
+		beneficiary,
+		baseFee,
+		blockMaxGasLimit,
+		maxBytesPerTxList,
+		locals,
+		maxTransactionsLists,
+	); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (c *EngineClient) FetchTxList(
+	ctx context.Context,
+	beneficiary common.Address,
+	baseFee *big.Int,
+	blockMaxGasLimit uint64,
+	maxBytesPerTxList uint64,
+	locals []string,
+	maxTransactionsLists uint64,
+) ([]*types.PreBuiltTxList, error) {
+	timeoutCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
+	defer cancel()
+
+	var result []*types.PreBuiltTxList
+	if err := c.CallContext(
+		timeoutCtx,
+		&result,
+		"taikoAuth_fetchTxList",
 		beneficiary,
 		baseFee,
 		blockMaxGasLimit,

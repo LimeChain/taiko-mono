@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/miner"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/suite"
 
@@ -175,9 +174,9 @@ func (s *ProposerTestSuite) TestProposeOpNoEmptyBlock() {
 		s.Nil(err)
 	}
 
-	var preBuiltTxList []*miner.PreBuiltTxList
+	var preBuiltTxList []*types.PreBuiltTxList
 	for i := 0; i < 3 && len(preBuiltTxList) == 0; i++ {
-		preBuiltTxList, err = s.RPCClient.GetPoolContent(
+		preBuiltTxList, err = s.RPCClient.FetchTxList(
 			context.Background(),
 			p.proposerAddress,
 			p.protocolConfigs.BlockMaxGasLimit,
