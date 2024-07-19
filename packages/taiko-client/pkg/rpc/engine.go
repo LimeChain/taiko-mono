@@ -7,7 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/beacon/engine"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/miner"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/rpc"
 )
@@ -107,11 +107,11 @@ func (c *EngineClient) BuildTxList(
 	maxBytesPerTxList uint64,
 	locals []string,
 	maxTransactionsLists uint64,
-) ([]*types.PreBuiltTxList, error) {
+) ([]*miner.PreBuiltTxList, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
-	var result []*types.PreBuiltTxList
+	var result []*miner.PreBuiltTxList
 	if err := c.CallContext(
 		timeoutCtx,
 		&result,
@@ -136,11 +136,11 @@ func (c *EngineClient) FetchTxList(
 	maxBytesPerTxList uint64,
 	locals []string,
 	maxTransactionsLists uint64,
-) ([]*types.PreBuiltTxList, error) {
+) ([]*miner.PreBuiltTxList, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
-	var result []*types.PreBuiltTxList
+	var result []*miner.PreBuiltTxList
 	if err := c.CallContext(
 		timeoutCtx,
 		&result,

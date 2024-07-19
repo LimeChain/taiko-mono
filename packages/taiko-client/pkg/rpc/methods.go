@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/miner"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings"
@@ -253,7 +254,7 @@ func (c *Client) BuildTxList(
 	maxBytesPerTxList uint64,
 	locals []common.Address,
 	maxTransactionsLists uint64,
-) ([]*types.PreBuiltTxList, error) {
+) ([]*miner.PreBuiltTxList, error) {
 	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, defaultTimeout)
 	defer cancel()
 
@@ -303,7 +304,7 @@ func (c *Client) FetchTxList(
 	maxBytesPerTxList uint64,
 	locals []common.Address,
 	maxTransactionsLists uint64,
-) ([]*types.PreBuiltTxList, error) {
+) ([]*miner.PreBuiltTxList, error) {
 	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, defaultTimeout)
 	defer cancel()
 
