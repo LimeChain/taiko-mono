@@ -156,7 +156,6 @@ func (p *Proposer) Start() error {
 	p.wg.Add(2)
 	go p.buildTxList()
 	go p.eventLoop()
-	go p.StartL2Preconfirmations()
 	return nil
 }
 
@@ -286,38 +285,6 @@ func (p *Proposer) fetchTxListToPropose(filterPoolContent bool) ([]types.Transac
 	}
 
 	log.Info("Transaction lists", "size", len(txLists))
-
-	return txLists, nil
-}
-
-func (p *Proposer) fetchPreconfirmedTxs() ([]types.Transactions, error) {
-	virtualBlockTxs, err := p.rpc.PreconfirmedTxs(p.ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch virtual block txs: %w", err)
-	}
-
-	txLists := []types.Transactions{}
-	for _, virtualTxList := range virtualBlockTxs {
-		if len(virtualTxList.TxList) > 0 {
-			txLists = append(txLists, virtualTxList.TxList[1:]) // exclude anchor tx
-		}
-	}
-
-	return txLists, nil
-}
-
-func (p *Proposer) fetchProposePreconfirmedTxs() ([]types.Transactions, error) {
-	virtualBlockTxs, err := p.rpc.ProposePreconfirmedTxs(p.ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch virtual block txs: %w", err)
-	}
-
-	txLists := []types.Transactions{}
-	for _, virtualTxList := range virtualBlockTxs {
-		if len(virtualTxList.TxList) > 0 {
-			txLists = append(txLists, virtualTxList.TxList[1:]) // exclude anchor tx
-		}
-	}
 
 	return txLists, nil
 }

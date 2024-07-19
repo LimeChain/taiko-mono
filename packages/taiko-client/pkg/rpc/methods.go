@@ -345,22 +345,6 @@ func (c *Client) FetchTxList(
 	)
 }
 
-// PreconfirmedTxs fetches the preconfirmed transactions from L2 execution engine's virtual block.
-func (c *Client) PreconfirmedTxs(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
-	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, defaultTimeout)
-	defer cancel()
-
-	return c.L2Engine.PreconfirmedTxs(ctxWithTimeout)
-}
-
-// ProposePreconfirmedTxs fetches the proposed preconfirmed transactions from L2 execution engine's virtual block.
-func (c *Client) ProposePreconfirmedTxs(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
-	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, defaultTimeout)
-	defer cancel()
-
-	return c.L2Engine.ProposePreconfirmedTxs(ctxWithTimeout)
-}
-
 // L2AccountNonce fetches the nonce of the given L2 account at a specified height.
 func (c *Client) L2AccountNonce(
 	ctx context.Context,

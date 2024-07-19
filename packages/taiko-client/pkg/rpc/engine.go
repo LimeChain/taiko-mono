@@ -156,27 +156,3 @@ func (c *EngineClient) FetchTxList(
 	}
 	return result, nil
 }
-
-func (c *EngineClient) PreconfirmedTxs(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
-	timeoutCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
-	defer cancel()
-
-	var result []*miner.PreBuiltTxList
-	if err := c.CallContext(timeoutCtx, &result, "taikoAuth_preconfirmedTxs"); err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func (c *EngineClient) ProposePreconfirmedTxs(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
-	timeoutCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
-	defer cancel()
-
-	var result []*miner.PreBuiltTxList
-	if err := c.CallContext(timeoutCtx, &result, "taikoAuth_proposePreconfirmedTxs"); err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}

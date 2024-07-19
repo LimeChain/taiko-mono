@@ -432,7 +432,6 @@ func (s *Syncer) createExecutionPayloads(
 		},
 		BaseFeePerGas: baseFee,
 		L1Origin:      l1Origin,
-		VirtualBlock:  false,
 	}
 
 	log.Debug(
