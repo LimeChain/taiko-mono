@@ -218,14 +218,7 @@ func (p *Proposer) Close(_ context.Context) {
 
 // fetchTxListToPropose fetches prebuilt list of transactions from L2 execution engine.
 func (p *Proposer) fetchTxListToPropose(filterPoolContent bool) ([]types.Transactions, error) {
-	preBuiltTxLists, err := p.rpc.FetchTxList(
-		p.ctx,
-		p.proposerAddress,
-		p.protocolConfigs.BlockMaxGasLimit,
-		rpc.BlockMaxTxListBytes,
-		p.LocalAddresses,
-		p.MaxProposedTxListsPerEpoch,
-	)
+	preBuiltTxLists, err := p.rpc.FetchTxList(p.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch transaction pool content: %w", err)
 	}

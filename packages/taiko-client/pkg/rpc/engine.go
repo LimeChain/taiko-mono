@@ -128,30 +128,12 @@ func (c *EngineClient) BuildTxList(
 	return result, nil
 }
 
-func (c *EngineClient) FetchTxList(
-	ctx context.Context,
-	beneficiary common.Address,
-	baseFee *big.Int,
-	blockMaxGasLimit uint64,
-	maxBytesPerTxList uint64,
-	locals []string,
-	maxTransactionsLists uint64,
-) ([]*miner.PreBuiltTxList, error) {
+func (c *EngineClient) FetchTxList(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
 	var result []*miner.PreBuiltTxList
-	if err := c.CallContext(
-		timeoutCtx,
-		&result,
-		"taikoAuth_fetchTxList",
-		beneficiary,
-		baseFee,
-		blockMaxGasLimit,
-		maxBytesPerTxList,
-		locals,
-		maxTransactionsLists,
-	); err != nil {
+	if err := c.CallContext(timeoutCtx, &result, "taikoAuth_fetchTxList"); err != nil {
 		return nil, err
 	}
 	return result, nil

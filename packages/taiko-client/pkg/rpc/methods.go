@@ -297,52 +297,11 @@ func (c *Client) BuildTxList(
 
 // FetchTxListToPropose fetches the transactions list from L2 execution engine's transactions pool with given
 // upper limit.
-func (c *Client) FetchTxList(
-	ctx context.Context,
-	beneficiary common.Address,
-	blockMaxGasLimit uint32,
-	maxBytesPerTxList uint64,
-	locals []common.Address,
-	maxTransactionsLists uint64,
-) ([]*miner.PreBuiltTxList, error) {
+func (c *Client) FetchTxList(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
 	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, defaultTimeout)
 	defer cancel()
 
-	l1Head, err := c.L1.HeaderByNumber(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	l2Head, err := c.L2.HeaderByNumber(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	baseFeeInfo, err := c.TaikoL2.GetBasefee(
-		&bind.CallOpts{Context: ctx},
-		l1Head.Number.Uint64(),
-		uint32(l2Head.GasUsed),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Info("Current base fee", "fee", utils.WeiToGWei(baseFeeInfo.Basefee))
-
-	var localsArg []string
-	for _, local := range locals {
-		localsArg = append(localsArg, local.Hex())
-	}
-
-	return c.L2Engine.FetchTxList(
-		ctxWithTimeout,
-		beneficiary,
-		baseFeeInfo.Basefee,
-		uint64(blockMaxGasLimit),
-		maxBytesPerTxList,
-		localsArg,
-		maxTransactionsLists,
-	)
+	return c.L2Engine.FetchTxList(ctxWithTimeout)
 }
 
 // L2AccountNonce fetches the nonce of the given L2 account at a specified height.
