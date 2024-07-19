@@ -295,7 +295,7 @@ func (c *Client) BuildTxList(
 	)
 }
 
-// FetchTxListToPropose fetches the transactions list from L2 execution engine's transactions pool with given
+// FetchTxList fetches the transactions list from L2 execution engine's transactions pool with given
 // upper limit.
 func (c *Client) FetchTxList(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
 	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, defaultTimeout)
