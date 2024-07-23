@@ -246,9 +246,8 @@ func (c *Client) WaitL2Header(ctx context.Context, blockID *big.Int) (*types.Hea
 	return nil, fmt.Errorf("failed to fetch block header from L2 execution engine, blockID: %d", blockID)
 }
 
-// GetPoolContent fetches the transactions list from L2 execution engine's transactions pool with given
-// upper limit.
-func (c *Client) GetPoolContent(
+// BuildTxList prepares list of transactions to be fetched for proposing.
+func (c *Client) BuildTxList(
 	ctx context.Context,
 	beneficiary common.Address,
 	blockMaxGasLimit uint32,
@@ -285,7 +284,7 @@ func (c *Client) GetPoolContent(
 		localsArg = append(localsArg, local.Hex())
 	}
 
-	return c.L2Engine.TxPoolContent(
+	return c.L2Engine.BuildTxList(
 		ctxWithTimeout,
 		beneficiary,
 		baseFeeInfo.Basefee,
@@ -296,20 +295,13 @@ func (c *Client) GetPoolContent(
 	)
 }
 
-// PreconfirmedTxs fetches the preconfirmed transactions from L2 execution engine's virtual block.
-func (c *Client) PreconfirmedTxs(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
+// FetchTxList fetches the transactions list from L2 execution engine's transactions pool with given
+// upper limit.
+func (c *Client) FetchTxList(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
 	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, defaultTimeout)
 	defer cancel()
 
-	return c.L2Engine.PreconfirmedTxs(ctxWithTimeout)
-}
-
-// ProposePreconfirmedTxs fetches the proposed preconfirmed transactions from L2 execution engine's virtual block.
-func (c *Client) ProposePreconfirmedTxs(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
-	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, defaultTimeout)
-	defer cancel()
-
-	return c.L2Engine.ProposePreconfirmedTxs(ctxWithTimeout)
+	return c.L2Engine.FetchTxList(ctxWithTimeout)
 }
 
 // L2AccountNonce fetches the nonce of the given L2 account at a specified height.

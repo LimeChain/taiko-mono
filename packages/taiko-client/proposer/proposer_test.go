@@ -177,7 +177,7 @@ func (s *ProposerTestSuite) TestProposeOpNoEmptyBlock() {
 
 	var preBuiltTxList []*miner.PreBuiltTxList
 	for i := 0; i < 3 && len(preBuiltTxList) == 0; i++ {
-		preBuiltTxList, err = s.RPCClient.GetPoolContent(
+		preBuiltTxList, err = s.RPCClient.FetchTxList(
 			context.Background(),
 			p.proposerAddress,
 			p.protocolConfigs.BlockMaxGasLimit,

@@ -99,8 +99,7 @@ func (c *EngineClient) ExchangeTransitionConfiguration(
 	return result, nil
 }
 
-// TxPoolContent fetches the transaction pool content from the L2 execution engine.
-func (c *EngineClient) TxPoolContent(
+func (c *EngineClient) BuildTxList(
 	ctx context.Context,
 	beneficiary common.Address,
 	baseFee *big.Int,
@@ -116,7 +115,7 @@ func (c *EngineClient) TxPoolContent(
 	if err := c.CallContext(
 		timeoutCtx,
 		&result,
-		"taikoAuth_txPoolContent",
+		"taikoAuth_buildTxList",
 		beneficiary,
 		baseFee,
 		blockMaxGasLimit,
@@ -129,26 +128,13 @@ func (c *EngineClient) TxPoolContent(
 	return result, nil
 }
 
-func (c *EngineClient) PreconfirmedTxs(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
+func (c *EngineClient) FetchTxList(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
 	var result []*miner.PreBuiltTxList
-	if err := c.CallContext(timeoutCtx, &result, "taikoAuth_preconfirmedTxs"); err != nil {
+	if err := c.CallContext(timeoutCtx, &result, "taikoAuth_fetchTxList"); err != nil {
 		return nil, err
 	}
-
-	return result, nil
-}
-
-func (c *EngineClient) ProposePreconfirmedTxs(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
-	timeoutCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
-	defer cancel()
-
-	var result []*miner.PreBuiltTxList
-	if err := c.CallContext(timeoutCtx, &result, "taikoAuth_proposePreconfirmedTxs"); err != nil {
-		return nil, err
-	}
-
 	return result, nil
 }
