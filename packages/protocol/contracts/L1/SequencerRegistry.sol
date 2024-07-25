@@ -21,7 +21,7 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
 
     uint8 public constant PROTOCOL_VERSION = 1;
 
-    uint256[50] private __gap;
+    uint256[44] private __gap;
 
     /// @notice Initializes the contract with the provided address manager.
     /// @param _owner The address of the owner.

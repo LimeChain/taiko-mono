@@ -3,13 +3,15 @@ pragma solidity 0.8.24;
 
 import "../common/EssentialContract.sol";
 import "./libs/LibProposing.sol";
-import "./libs/LibProving.sol";
+// Note: commented code to reduce the code size of the contract,
+// so it can be deployed below the limit of 24576 during the POC
+// import "./libs/LibProving.sol";
 import "./libs/LibVerifying.sol";
 import "./ITaikoL1.sol";
 import "./TaikoErrors.sol";
 import "./TaikoEvents.sol";
-import "./TaikoStake.sol";
 import "./TaikoProposer.sol";
+import "./TaikoStake.sol";
 import "./ISequencerRegistry.sol";
 
 /// @title TaikoL1
@@ -26,8 +28,8 @@ contract TaikoL1 is
     ITaikoL1,
     TaikoEvents,
     TaikoErrors,
-    TaikoStake,
-    TaikoProposer
+    TaikoProposer,
+    TaikoStake
 {
     /// @notice The TaikoL1 state.
     TaikoData.State public state;
@@ -83,10 +85,11 @@ contract TaikoL1 is
         external
         payable
     {
+        TaikoData.Config memory config = getConfig();
         ISequencerRegistry sequencerRegistry =
             ISequencerRegistry(resolve(LibStrings.B_SEQUENCER_REGISTRY, false));
 
-        TaikoStake._stakeSequencer(sequencerRegistry, pubkey, validatorProof);
+        TaikoStake._stakeSequencer(state, config, sequencerRegistry, pubkey, validatorProof);
     }
 
     /// @inheritdoc ITaikoL1
@@ -122,22 +125,25 @@ contract TaikoL1 is
         nonReentrant
         emitEventForClient
     {
-        (
-            TaikoData.BlockMetadata memory meta,
-            TaikoData.Transition memory tran,
-            TaikoData.TierProof memory proof
-        ) = abi.decode(_input, (TaikoData.BlockMetadata, TaikoData.Transition, TaikoData.TierProof));
+        // Note: commented code to reduce the code size of the contract,
+        // so it can be deployed below the limit of 24576 during the POC
+        // (
+        //     TaikoData.BlockMetadata memory meta,
+        //     TaikoData.Transition memory tran,
+        //     TaikoData.TierProof memory proof
+        // ) = abi.decode(_input, (TaikoData.BlockMetadata, TaikoData.Transition,
+        // TaikoData.TierProof));
 
-        if (_blockId != meta.id) revert L1_INVALID_BLOCK_ID();
+        // if (_blockId != meta.id) revert L1_INVALID_BLOCK_ID();
 
-        TaikoData.Config memory config = getConfig();
-        TaikoToken tko = TaikoToken(resolve(LibStrings.B_TAIKO_TOKEN, false));
+        // TaikoData.Config memory config = getConfig();
+        // TaikoToken tko = TaikoToken(resolve(LibStrings.B_TAIKO_TOKEN, false));
 
-        LibProving.proveBlock(state, tko, config, this, meta, tran, proof);
+        // LibProving.proveBlock(state, tko, config, this, meta, tran, proof);
 
-        if (LibUtils.shouldVerifyBlocks(config, meta.id, false)) {
-            LibVerifying.verifyBlocks(state, tko, config, this, config.maxBlocksToVerify);
-        }
+        // if (LibUtils.shouldVerifyBlocks(config, meta.id, false)) {
+        //     LibVerifying.verifyBlocks(state, tko, config, this, config.maxBlocksToVerify);
+        // }
     }
 
     /// @inheritdoc ITaikoL1
@@ -235,7 +241,9 @@ contract TaikoL1 is
     /// @inheritdoc ITaikoL1
     function pauseProving(bool _pause) external {
         _authorizePause(msg.sender, _pause);
-        LibProving.pauseProving(state, _pause);
+        // Note: commented code to reduce the code size of the contract,
+        // so it can be deployed below the limit of 24576 during the POC
+        // LibProving.pauseProving(state, _pause);
     }
 
     /// @inheritdoc EssentialContract
@@ -265,7 +273,8 @@ contract TaikoL1 is
             blockMaxGasLimit: 240_000_000,
             livenessBond: 125e18, // 125 Taiko token
             stateRootSyncInternal: 16,
-            checkEOAForCalldataDA: true
+            checkEOAForCalldataDA: true,
+            activationThreshold: 100 gwei
         });
     }
 
