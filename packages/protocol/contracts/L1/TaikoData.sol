@@ -173,8 +173,8 @@ library TaikoData {
         bytes32 __reserve1;
         SlotA slotA; // slot 5
         SlotB slotB; // slot 6
-        mapping(address => uint256) stakes;
-        mapping(address => bool) activated;
-        uint256[42] __gap;
+        mapping(address proposer => uint256 stake) stakes;
+        mapping(uint64 blockId => address proposer) blockProposers;
+        uint256[41] __gap;
     }
 }

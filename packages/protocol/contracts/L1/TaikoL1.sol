@@ -10,9 +10,7 @@ import "./libs/LibVerifying.sol";
 import "./ITaikoL1.sol";
 import "./TaikoErrors.sol";
 import "./TaikoEvents.sol";
-import "./TaikoProposer.sol";
 import "./TaikoStake.sol";
-import "./ISequencerRegistry.sol";
 
 /// @title TaikoL1
 /// @notice This contract serves as the "base layer contract" of the Taiko protocol, providing
@@ -23,14 +21,7 @@ import "./ISequencerRegistry.sol";
 /// by the Bridge contract.
 /// @dev Labeled in AddressResolver as "taiko"
 /// @custom:security-contact security@taiko.xyz
-contract TaikoL1 is
-    EssentialContract,
-    ITaikoL1,
-    TaikoEvents,
-    TaikoErrors,
-    TaikoProposer,
-    TaikoStake
-{
+contract TaikoL1 is EssentialContract, ITaikoL1, TaikoEvents, TaikoErrors, TaikoStake {
     /// @notice The TaikoL1 state.
     TaikoData.State public state;
 
@@ -274,7 +265,7 @@ contract TaikoL1 is
             livenessBond: 125e18, // 125 Taiko token
             stateRootSyncInternal: 16,
             checkEOAForCalldataDA: true,
-            activationThreshold: 100 gwei
+            activationThreshold: 1 ether
         });
     }
 

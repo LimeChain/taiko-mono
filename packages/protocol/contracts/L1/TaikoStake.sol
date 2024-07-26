@@ -19,18 +19,18 @@ contract TaikoStake {
     {
         address staker = msg.sender;
         require(msg.value > 0, "Stake amount must be greater than zero");
+        require(!sequencerRegistry.whitelisted(staker), "Already whitelisted");
 
         _state.stakes[staker] += msg.value;
 
-        if (_state.stakes[staker] >= _config.activationThreshold && !_state.activated[staker]) {
-            _activateSequencer(_state, sequencerRegistry, staker, pubkey, validatorProof);
+        if (_state.stakes[staker] >= _config.activationThreshold) {
+            _activateSequencer(sequencerRegistry, staker, pubkey, validatorProof);
         }
 
         emit Staked(staker, msg.value);
     }
 
     function _activateSequencer(
-        TaikoData.State storage _state,
         ISequencerRegistry sequencerRegistry,
         address staker,
         bytes calldata pubkey,
@@ -40,7 +40,6 @@ contract TaikoStake {
     {
         sequencerRegistry.activate(pubkey, validatorProof);
 
-        _state.activated[staker] = true;
         emit Activated(staker);
     }
 }

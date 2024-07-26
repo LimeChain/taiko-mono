@@ -32,6 +32,7 @@ library LibVerifying {
     error L1_INVALID_CONFIG();
     error L1_TRANSITION_ID_ZERO();
     error L1_TOO_LATE();
+    error L1_INVALID_PROPOSER();
 
     /// @dev Verifies up to N blocks.
     function verifyBlocks(
@@ -83,7 +84,10 @@ library LibVerifying {
                 local.slot = local.blockId % _config.blockRingBufferSize;
 
                 blk = _state.blocks[local.slot];
+                address proposer = _state.blockProposers[local.slot];
                 if (blk.blockId != local.blockId) revert L1_BLOCK_MISMATCH();
+
+                validateProposer(proposer, _resolver);
 
                 local.tid = LibUtils.getTransitionId(_state, blk, local.slot, local.blockHash);
                 // When `tid` is 0, it indicates that there is no proven
@@ -189,5 +193,33 @@ library LibVerifying {
                 }
             }
         }
+    }
+
+    /// @notice Validates if the given address is an active proposer
+    /// @param proposer The address of the proposer
+    function validateProposer(address proposer, IAddressResolver _resolver) internal view {
+        ISequencerRegistry sequencerRegistry =
+            ISequencerRegistry(_resolver.resolve(LibStrings.B_SEQUENCER_REGISTRY, false));
+
+        if (!sequencerRegistry.isEligibleSigner(proposer)) {
+            address _fallbackProposer = fallbackProposer(sequencerRegistry);
+            if (
+                _fallbackProposer == address(0)
+                    || !sequencerRegistry.isEligibleSigner(_fallbackProposer)
+            ) {
+                revert L1_INVALID_PROPOSER();
+            }
+        }
+    }
+
+    /// @notice Selects a fallback proposer based on the parent block hash
+    /// @param sequencerRegistry The sequencerRegistry contract address
+    /// @return The address of the fallback proposer
+    function fallbackProposer(ISequencerRegistry sequencerRegistry) public view returns (address) {
+        bytes32 parentBlockHash = blockhash(block.number - 1);
+        uint256 fallbackIndex =
+            uint256(parentBlockHash) % sequencerRegistry.eligibleCountAt(block.number);
+        (address signer,,) = sequencerRegistry.sequencerByIndex(fallbackIndex);
+        return signer;
     }
 }
