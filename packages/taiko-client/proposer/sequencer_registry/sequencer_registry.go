@@ -1,4 +1,4 @@
-package sequencer_registry
+package main
 
 import (
 	"context"
@@ -121,12 +121,17 @@ func activate(ctx context.Context, client *rpc.EthClient, auth *bind.TransactOpt
 		return err
 	}
 
-	log.Printf("Sequencer staked successfully")
+	log.Printf("Sequencer activated successfully")
 	return nil
 }
 
 func main() {
 	var client *rpc.EthClient
+
+	if len(os.Args) < 2 {
+		log.Fatalf("Usage: %s [register|activate]", os.Args[0])
+		os.Exit(1)
+	}
 
 	loadEnv()
 
@@ -156,11 +161,6 @@ func main() {
 
 	if client, err = rpc.NewEthClient(ctx, rpcURL, defaultTimeout); err != nil {
 		log.Fatalf("Failed to connect to L1 endpoint, retrying", "endpoint", rpcURL, "err", err)
-		os.Exit(1)
-	}
-
-	if len(os.Args) < 2 {
-		log.Fatalf("Usage: %s [register|activate]", os.Args[0])
 		os.Exit(1)
 	}
 
