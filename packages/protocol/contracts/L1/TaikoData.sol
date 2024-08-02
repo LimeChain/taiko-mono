@@ -172,5 +172,6 @@ library TaikoData {
         bytes32 __reserve1;
         SlotA slotA; // slot 5
         SlotB slotB; // slot 6
+        uint256[44] __gap;
     }
 }

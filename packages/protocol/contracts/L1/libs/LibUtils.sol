@@ -9,7 +9,6 @@ import "../../tko/TaikoToken.sol";
 import "../../libs/LibMath.sol";
 import "../tiers/ITierProvider.sol";
 import "../tiers/ITierRouter.sol";
-import "../ISequencerRegistry.sol";
 import "../TaikoData.sol";
 
 /// @title LibUtils
