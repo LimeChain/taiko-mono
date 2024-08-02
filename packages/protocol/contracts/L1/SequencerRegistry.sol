@@ -6,10 +6,7 @@ import "./ISequencerRegistry.sol";
 
 /// @title SequencerRegistry
 contract SequencerRegistry is EssentialContract, ISequencerRegistry {
-    /// @dev Emitted when the status of a sequencer is updated.
-    /// @param sequencer The address of the sequencer whose state has updated.
-    /// @param enabled If the sequencer is now enabled or not.
-    event SequencerUpdated(address indexed sequencer, bool enabled);
+    uint8 public constant PROTOCOL_VERSION = 1;
 
     bytes[] public allSequencers;
     /// @notice Whitelisted sequencers
@@ -19,9 +16,12 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
     uint256 public activationThreshold;
     uint256 public withdrawalChallengePeriod;
 
-    uint8 public constant PROTOCOL_VERSION = 1;
-
     uint256[44] private __gap;
+
+    /// @dev Emitted when the status of a sequencer is updated.
+    /// @param sequencer The address of the sequencer whose state has updated.
+    /// @param enabled If the sequencer is now enabled or not.
+    event SequencerUpdated(address indexed sequencer, bool enabled);
 
     /// @notice Initializes the contract with the provided address manager.
     /// @param _owner The address of the owner.
