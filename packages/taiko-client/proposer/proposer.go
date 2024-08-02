@@ -148,6 +148,16 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 		)
 	}
 
+	isEligibleSigner, err := p.rpc.SequencerRegistry.IsEligibleSigner(&bind.CallOpts{Context: ctx}, p.proposerAddress)
+	if err != nil {
+		return fmt.Errorf("failed to get IsEligibleSignerr: %w", err)
+	}
+
+	if !isEligibleSigner {
+		log.Error("the sequencer is not eligible signer", "error", err)
+		return err
+	}
+
 	return nil
 }
 

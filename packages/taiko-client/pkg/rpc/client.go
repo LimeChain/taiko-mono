@@ -30,6 +30,7 @@ type Client struct {
 	TaikoL1                *bindings.TaikoL1Client
 	TaikoL2                *bindings.TaikoL2Client
 	TaikoToken             *bindings.TaikoToken
+	SequencerRegistry      *bindings.SequencerRegistry
 	GuardianProverMajority *bindings.GuardianProver
 	GuardianProverMinority *bindings.GuardianProver
 	ProverSet              *bindings.ProverSet
@@ -49,6 +50,7 @@ type ClientConfig struct {
 	GuardianProverMinorityAddress common.Address
 	GuardianProverMajorityAddress common.Address
 	ProverSetAddress              common.Address
+	SequencerRegistryAddress      common.Address
 	L2EngineEndpoint              string
 	JwtSecret                     string
 	Timeout                       time.Duration
@@ -118,9 +120,15 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 		guardianProverMajority *bindings.GuardianProver
 		guardianProverMinority *bindings.GuardianProver
 		proverSet              *bindings.ProverSet
+		sequencerRegistry      *bindings.SequencerRegistry
 	)
 	if cfg.TaikoTokenAddress.Hex() != ZeroAddress.Hex() {
 		if taikoToken, err = bindings.NewTaikoToken(cfg.TaikoTokenAddress, l1Client); err != nil {
+			return nil, err
+		}
+	}
+	if cfg.SequencerRegistryAddress.Hex() != ZeroAddress.Hex() {
+		if sequencerRegistry, err = bindings.NewSequencerRegistry(cfg.SequencerRegistryAddress, l1Client); err != nil {
 			return nil, err
 		}
 	}
@@ -162,6 +170,7 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 		GuardianProverMajority: guardianProverMajority,
 		GuardianProverMinority: guardianProverMinority,
 		ProverSet:              proverSet,
+		SequencerRegistry:      sequencerRegistry,
 	}
 
 	if err := client.ensureGenesisMatched(ctxWithTimeout); err != nil {
