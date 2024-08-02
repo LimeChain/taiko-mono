@@ -19,16 +19,6 @@ const (
 	defaultTimeout = 1 * time.Minute
 )
 
-type ISequencerRegistryValidatorProof struct {
-	CurrentEpoch    uint64
-	ActivationEpoch uint64
-	ExitEpoch       uint64
-	ValidatorIndex  *big.Int
-	Slashed         bool
-	ProofSlot       *big.Int
-	SszProof        []byte
-}
-
 func loadEnv() {
 	err := godotenv.Load()
 	if err != nil {
@@ -82,49 +72,6 @@ func register(ctx context.Context, client *rpc.EthClient, auth *bind.TransactOpt
 	return nil
 }
 
-func activate(ctx context.Context, client *rpc.EthClient, auth *bind.TransactOpts) error {
-	registryAddress := common.HexToAddress(os.Getenv("TAIKOL1"))
-
-	registry, err := bindings.NewTaikoL1Client(registryAddress, client)
-	if err != nil {
-		log.Fatalf("Failed to instantiate a TaikoL1 contract: %v", err)
-	}
-
-	auth.Value = big.NewInt(1e18) // Staking 1 ETH
-
-	tx, err := registry.StakeSequencer(
-		auth,
-		make([]byte, 48), // publicKey
-		bindings.ISequencerRegistryValidatorProof{
-			CurrentEpoch:    0,             // Placeholder
-			ActivationEpoch: 0,             // Placeholder
-			ExitEpoch:       0,             // Placeholder
-			ValidatorIndex:  big.NewInt(0), // Placeholder
-			Slashed:         false,         // Placeholder
-			ProofSlot:       big.NewInt(0), // Placeholder
-			SszProof:        []byte{},      // Placeholder
-		},
-	)
-
-	if err != nil {
-		log.Fatalf("failed to stake sequencer", "error", err)
-		return err
-	}
-
-	receipt, err := bind.WaitMined(ctx, client, tx)
-	if err != nil {
-		log.Fatalf("transaction mining error", "error", err)
-		return err
-	}
-	if receipt.Status != 1 {
-		log.Fatalf("transaction failed", "error", err)
-		return err
-	}
-
-	log.Printf("Sequencer activated successfully")
-	return nil
-}
-
 func main() {
 	var client *rpc.EthClient
 
@@ -167,12 +114,6 @@ func main() {
 	switch os.Args[1] {
 	case "register":
 		err := register(ctx, client, auth)
-		if err != nil {
-			log.Fatalf("Failed to register sequencer: %v", err)
-			os.Exit(1)
-		}
-	case "activate":
-		err := activate(ctx, client, auth)
 		if err != nil {
 			log.Fatalf("Failed to register sequencer: %v", err)
 			os.Exit(1)

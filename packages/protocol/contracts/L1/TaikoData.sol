@@ -36,7 +36,6 @@ library TaikoData {
         // The number of L2 blocks between each L2-to-L1 state root sync.
         uint8 stateRootSyncInternal;
         bool checkEOAForCalldataDA;
-        uint256 activationThreshold;
     }
 
     /// @dev Struct representing prover fees per given tier
@@ -173,8 +172,5 @@ library TaikoData {
         bytes32 __reserve1;
         SlotA slotA; // slot 5
         SlotB slotB; // slot 6
-        mapping(address proposer => uint256 stake) stakes;
-        mapping(uint64 blockId_mod_blockRingBufferSize => address proposer) blockProposers;
-        uint256[41] __gap;
     }
 }
