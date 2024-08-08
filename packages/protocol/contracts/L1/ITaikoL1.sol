@@ -2,6 +2,7 @@
 pragma solidity 0.8.24;
 
 import "./TaikoData.sol";
+import "./ISequencerRegistry.sol";
 
 /// @title ITaikoL1
 /// @custom:security-contact security@taiko.xyz
@@ -37,4 +38,11 @@ interface ITaikoL1 {
     /// @notice Gets the configuration of the TaikoL1 contract.
     /// @return Config struct containing configuration parameters.
     function getConfig() external pure returns (TaikoData.Config memory);
+
+    function stakeSequencer(
+        bytes calldata pubkey,
+        ISequencerRegistry.ValidatorProof calldata validatorProof
+    )
+        external
+        payable;
 }

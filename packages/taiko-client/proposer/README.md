@@ -54,6 +54,14 @@ Run the following command to register the sequencer:
 go run ./sequencer_registry register
 ```
 
+3. **Activate the Sequencer**
+
+Run the following command to activate the sequencer:
+
+```sh
+go run ./sequencer_registry activate
+```
+
 Additional Information
 
 - Ensure that the smart contracts are deployed and accessible at the addresses specified in the environment variables.
