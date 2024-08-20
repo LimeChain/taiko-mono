@@ -99,9 +99,8 @@ func (c *EngineClient) ExchangeTransitionConfiguration(
 	return result, nil
 }
 
-func (c *EngineClient) UpdateL2EpochAndSlots(
+func (c *EngineClient) UpdateConfigAndSlots(
 	ctx context.Context,
-	currentEpoch uint64,
 	currentSlot uint64,
 	currentAssignedSlots []uint64,
 	baseFee *big.Int,
@@ -116,8 +115,7 @@ func (c *EngineClient) UpdateL2EpochAndSlots(
 	if err := c.CallContext(
 		timeoutCtx,
 		&result,
-		"taikoAuth_updateEpochAndSlots",
-		currentEpoch,
+		"taikoAuth_updateConfigAndSlots",
 		currentSlot,
 		currentAssignedSlots,
 		baseFee,

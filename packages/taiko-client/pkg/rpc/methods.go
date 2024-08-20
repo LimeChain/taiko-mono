@@ -246,9 +246,8 @@ func (c *Client) WaitL2Header(ctx context.Context, blockID *big.Int) (*types.Hea
 	return nil, fmt.Errorf("failed to fetch block header from L2 execution engine, blockID: %d", blockID)
 }
 
-func (c *Client) UpdateL2EpochAndSlots(
+func (c *Client) UpdateL2ConfigAndSlots(
 	ctx context.Context,
-	currentEpoch uint64,
 	currentSlot uint64,
 	currentAssignedSlots []uint64,
 	blockMaxGasLimit uint32,
@@ -279,9 +278,8 @@ func (c *Client) UpdateL2EpochAndSlots(
 
 	log.Info("Current base fee", "fee", utils.WeiToGWei(baseFeeInfo.Basefee))
 
-	return c.L2Engine.UpdateL2EpochAndSlots(
+	return c.L2Engine.UpdateConfigAndSlots(
 		ctxWithTimeout,
-		currentEpoch,
 		currentSlot,
 		currentAssignedSlots,
 		baseFeeInfo.Basefee,

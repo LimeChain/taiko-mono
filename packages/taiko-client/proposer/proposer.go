@@ -165,17 +165,15 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 func (p *Proposer) Start() error {
 	p.wg.Add(2)
 	go p.eventLoop()
-	go p.updateL2EpochAndSlots()
+	go p.updateL2ConfigAndSlots()
 	return nil
 }
 
-// TODO(limechain): mock, remove once implemented
-func getL1EpochAndSlots() (uint64, uint64, []uint64) {
-	slot := uint64(52625)
-
-	offset := slot % 32
-	firstEpochSlot := slot - offset
-	epoch := firstEpochSlot / 32
+// TODO(limechain): remove and implemented
+func getL1Slots() (uint64, []uint64) {
+	currentSlot := uint64(52625)
+	offset := currentSlot % 32
+	firstEpochSlot := currentSlot - offset
 
 	assignedSlots := []uint64{
 		firstEpochSlot + 0,
@@ -212,10 +210,10 @@ func getL1EpochAndSlots() (uint64, uint64, []uint64) {
 		firstEpochSlot + 31,
 	}
 
-	return epoch, slot, assignedSlots
+	return currentSlot, assignedSlots
 }
 
-func (p *Proposer) updateL2EpochAndSlots() {
+func (p *Proposer) updateL2ConfigAndSlots() {
 	defer p.wg.Done()
 
 	for {
@@ -223,15 +221,15 @@ func (p *Proposer) updateL2EpochAndSlots() {
 		case <-p.ctx.Done():
 			return
 		default:
-			// TODO(limechain): at the beginning of each new slot update the config
-			// params in Geth (base fee, max gas limit, max tx list bytes) + epoch and slots
+			// TODO(limechain): at the beginning of each slot update the config params
+			// in Geth (base fee, max gas limit, max tx list bytes) together with the
+			// current and assigned slots
 			time.Sleep(12 * time.Second)
 
-			currentEpoch, currentSlot, currentAssignedSlots := getL1EpochAndSlots()
+			currentSlot, currentAssignedSlots := getL1Slots()
 
-			_, err := p.rpc.UpdateL2EpochAndSlots(
+			_, err := p.rpc.UpdateL2ConfigAndSlots(
 				p.ctx,
-				currentEpoch,
 				currentSlot,
 				currentAssignedSlots,
 				p.protocolConfigs.BlockMaxGasLimit,
@@ -239,7 +237,7 @@ func (p *Proposer) updateL2EpochAndSlots() {
 				p.proposerAddress,
 			)
 			if err != nil {
-				log.Error("Update epoch, slots and config params", "error", err)
+				log.Error("Update slots and config params", "error", err)
 				continue
 			}
 		}
