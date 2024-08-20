@@ -108,8 +108,6 @@ func (c *EngineClient) UpdateL2EpochAndSlots(
 	blockMaxGasLimit uint64,
 	maxBytesPerTxList uint64,
 	beneficiary common.Address,
-	locals []string,
-	maxTransactionsLists uint64,
 ) ([]*miner.PreBuiltTxList, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
@@ -126,8 +124,6 @@ func (c *EngineClient) UpdateL2EpochAndSlots(
 		blockMaxGasLimit,
 		maxBytesPerTxList,
 		beneficiary,
-		locals,
-		maxTransactionsLists,
 	); err != nil {
 		return nil, err
 	}

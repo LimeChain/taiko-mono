@@ -237,8 +237,6 @@ func (p *Proposer) updateL2EpochAndSlots() {
 				p.protocolConfigs.BlockMaxGasLimit,
 				rpc.BlockMaxTxListBytes,
 				p.proposerAddress,
-				p.LocalAddresses,
-				p.MaxProposedTxListsPerEpoch,
 			)
 			if err != nil {
 				log.Error("Update epoch, slots and config params", "error", err)
@@ -377,7 +375,7 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 
 	g, gCtx := errgroup.WithContext(ctx)
 	// Propose all L2 transactions lists.
-	for _, txs := range txLists[:utils.Min(p.MaxProposedTxListsPerEpoch, uint64(len(txLists)))] {
+	for _, txs := range txLists[:uint64(len(txLists))] {
 		nonce, err := p.rpc.L1.PendingNonceAt(ctx, p.proposerAddress)
 		if err != nil {
 			log.Error("Failed to get proposer nonce", "error", err)

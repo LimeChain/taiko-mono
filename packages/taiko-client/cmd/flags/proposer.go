@@ -105,26 +105,19 @@ var (
 		EnvVars:  []string{"EXTRA_DATA"},
 	}
 	// Transactions pool related.
-	TxPoolLocals = &cli.StringSliceFlag{
-		Name:     "txPool.locals",
-		Usage:    "Comma separated accounts to treat as locals (priority inclusion)",
-		Category: proposerCategory,
-		EnvVars:  []string{"TX_POOL_LOCALS"},
-	}
-	TxPoolLocalsOnly = &cli.BoolFlag{
-		Name:     "txPool.localsOnly",
-		Usage:    "If set to true, proposer will only propose transactions of local accounts",
-		Value:    false,
-		Category: proposerCategory,
-		EnvVars:  []string{"TX_POOL_LOCALS_ONLY"},
-	}
-	MaxProposedTxListsPerEpoch = &cli.Uint64Flag{
-		Name:     "txPool.maxTxListsPerEpoch",
-		Usage:    "Maximum number of transaction lists which will be proposed inside one proposing epoch",
-		Value:    1,
-		Category: proposerCategory,
-		EnvVars:  []string{"TX_POOL_MAX_TX_LISTS_PER_EPOCH"},
-	}
+	// TxPoolLocals = &cli.StringSliceFlag{
+	// 	Name:     "txPool.locals",
+	// 	Usage:    "Comma separated accounts to treat as locals (priority inclusion)",
+	// 	Category: proposerCategory,
+	// 	EnvVars:  []string{"TX_POOL_LOCALS"},
+	// }
+	// TxPoolLocalsOnly = &cli.BoolFlag{
+	// 	Name:     "txPool.localsOnly",
+	// 	Usage:    "If set to true, proposer will only propose transactions of local accounts",
+	// 	Value:    false,
+	// 	Category: proposerCategory,
+	// 	EnvVars:  []string{"TX_POOL_LOCALS_ONLY"},
+	// }
 	ProposeBlockIncludeParentMetaHash = &cli.BoolFlag{
 		Name:     "includeParentMetaHash",
 		Usage:    "Include parent meta hash when proposing block",
@@ -157,13 +150,12 @@ var ProposerFlags = MergeFlags(CommonFlags, []cli.Flag{
 	L1ProposerPrivKey,
 	L2SuggestedFeeRecipient,
 	ProposeInterval,
-	TxPoolLocals,
-	TxPoolLocalsOnly,
+	// TxPoolLocals,
+	// TxPoolLocalsOnly,
 	ExtraData,
 	MinGasUsed,
 	MinTxListBytes,
 	MinProposingInternal,
-	MaxProposedTxListsPerEpoch,
 	ProverEndpoints,
 	OptimisticTierFee,
 	SgxTierFee,
