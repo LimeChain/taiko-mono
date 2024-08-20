@@ -246,12 +246,14 @@ func (c *Client) WaitL2Header(ctx context.Context, blockID *big.Int) (*types.Hea
 	return nil, fmt.Errorf("failed to fetch block header from L2 execution engine, blockID: %d", blockID)
 }
 
-// BuildTxList prepares list of transactions to be fetched for proposing.
-func (c *Client) BuildTxList(
+func (c *Client) UpdateL2EpochAndSlots(
 	ctx context.Context,
-	beneficiary common.Address,
+	currentEpoch uint64,
+	currentSlot uint64,
+	currentAssignedSlots []uint64,
 	blockMaxGasLimit uint32,
 	maxBytesPerTxList uint64,
+	beneficiary common.Address,
 	locals []common.Address,
 	maxTransactionsLists uint64,
 ) ([]*miner.PreBuiltTxList, error) {
@@ -284,12 +286,15 @@ func (c *Client) BuildTxList(
 		localsArg = append(localsArg, local.Hex())
 	}
 
-	return c.L2Engine.BuildTxList(
+	return c.L2Engine.UpdateL2EpochAndSlots(
 		ctxWithTimeout,
-		beneficiary,
+		currentEpoch,
+		currentSlot,
+		currentAssignedSlots,
 		baseFeeInfo.Basefee,
 		uint64(blockMaxGasLimit),
 		maxBytesPerTxList,
+		beneficiary,
 		localsArg,
 		maxTransactionsLists,
 	)

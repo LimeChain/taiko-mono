@@ -164,12 +164,58 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 // Start starts the proposer's main loop.
 func (p *Proposer) Start() error {
 	p.wg.Add(2)
-	go p.buildTxList()
 	go p.eventLoop()
+	go p.updateL2EpochAndSlots()
 	return nil
 }
 
-func (p *Proposer) buildTxList() {
+// TODO(limechain): mock, remove once implemented
+func getL1EpochAndSlots() (uint64, uint64, []uint64) {
+	slot := uint64(52625)
+
+	offset := slot % 32
+	firstEpochSlot := slot - offset
+	epoch := firstEpochSlot / 32
+
+	assignedSlots := []uint64{
+		firstEpochSlot + 0,
+		// firstEpochSlot + 1,
+		// firstEpochSlot + 2,
+		firstEpochSlot + 3,
+		firstEpochSlot + 4,
+		firstEpochSlot + 5,
+		firstEpochSlot + 6,
+		firstEpochSlot + 7,
+		firstEpochSlot + 8,
+		firstEpochSlot + 9,
+		firstEpochSlot + 10,
+		firstEpochSlot + 11,
+		firstEpochSlot + 12,
+		firstEpochSlot + 13,
+		firstEpochSlot + 14,
+		// firstEpochSlot + 15,
+		// firstEpochSlot + 16,
+		// firstEpochSlot + 17,
+		// firstEpochSlot + 18,
+		// firstEpochSlot + 19,
+		// firstEpochSlot + 20,
+		firstEpochSlot + 21,
+		firstEpochSlot + 22,
+		firstEpochSlot + 23,
+		firstEpochSlot + 24,
+		firstEpochSlot + 25,
+		firstEpochSlot + 26,
+		firstEpochSlot + 27,
+		firstEpochSlot + 28,
+		firstEpochSlot + 39,
+		firstEpochSlot + 30,
+		firstEpochSlot + 31,
+	}
+
+	return epoch, slot, assignedSlots
+}
+
+func (p *Proposer) updateL2EpochAndSlots() {
 	defer p.wg.Done()
 
 	for {
@@ -177,18 +223,25 @@ func (p *Proposer) buildTxList() {
 		case <-p.ctx.Done():
 			return
 		default:
-			time.Sleep(5 * time.Second)
+			// TODO(limechain): at the beginning of each new slot update the config
+			// params in Geth (base fee, max gas limit, max tx list bytes) + epoch and slots
+			time.Sleep(12 * time.Second)
 
-			_, err := p.rpc.BuildTxList(
+			currentEpoch, currentSlot, currentAssignedSlots := getL1EpochAndSlots()
+
+			_, err := p.rpc.UpdateL2EpochAndSlots(
 				p.ctx,
-				p.proposerAddress,
+				currentEpoch,
+				currentSlot,
+				currentAssignedSlots,
 				p.protocolConfigs.BlockMaxGasLimit,
 				rpc.BlockMaxTxListBytes,
+				p.proposerAddress,
 				p.LocalAddresses,
 				p.MaxProposedTxListsPerEpoch,
 			)
 			if err != nil {
-				log.Error("Building tx list error", "error", err)
+				log.Error("Update epoch, slots and config params", "error", err)
 				continue
 			}
 		}
