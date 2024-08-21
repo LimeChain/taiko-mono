@@ -107,6 +107,8 @@ func (c *EngineClient) UpdateConfigAndSlots(
 	blockMaxGasLimit uint64,
 	maxBytesPerTxList uint64,
 	beneficiary common.Address,
+	locals []string,
+	maxTransactionsLists uint64,
 ) ([]*miner.PreBuiltTxList, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
@@ -122,6 +124,8 @@ func (c *EngineClient) UpdateConfigAndSlots(
 		blockMaxGasLimit,
 		maxBytesPerTxList,
 		beneficiary,
+		locals,
+		maxTransactionsLists,
 	); err != nil {
 		return nil, err
 	}

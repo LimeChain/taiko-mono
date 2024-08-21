@@ -24,25 +24,26 @@ import (
 // Config contains all configurations to initialize a Taiko proposer.
 type Config struct {
 	*rpc.ClientConfig
-	L1ProposerPrivKey       *ecdsa.PrivateKey
-	L2SuggestedFeeRecipient common.Address
-	ExtraData               string
-	ProposeInterval         time.Duration
-	LocalAddresses          []common.Address
-	LocalAddressesOnly      bool
-	MinGasUsed              uint64
-	MinTxListBytes          uint64
-	MinProposingInternal    time.Duration
-	ProposeBlockTxGasLimit  uint64
-	ProverEndpoints         []*url.URL
-	OptimisticTierFee       *big.Int
-	SgxTierFee              *big.Int
-	TierFeePriceBump        *big.Int
-	MaxTierFeePriceBumps    uint64
-	IncludeParentMetaHash   bool
-	BlobAllowed             bool
-	TxmgrConfigs            *txmgr.CLIConfig
-	L1BlockBuilderTip       *big.Int
+	L1ProposerPrivKey          *ecdsa.PrivateKey
+	L2SuggestedFeeRecipient    common.Address
+	ExtraData                  string
+	ProposeInterval            time.Duration
+	LocalAddresses             []common.Address
+	LocalAddressesOnly         bool
+	MinGasUsed                 uint64
+	MinTxListBytes             uint64
+	MinProposingInternal       time.Duration
+	MaxProposedTxListsPerEpoch uint64
+	ProposeBlockTxGasLimit     uint64
+	ProverEndpoints            []*url.URL
+	OptimisticTierFee          *big.Int
+	SgxTierFee                 *big.Int
+	TierFeePriceBump           *big.Int
+	MaxTierFeePriceBumps       uint64
+	IncludeParentMetaHash      bool
+	BlobAllowed                bool
+	TxmgrConfigs               *txmgr.CLIConfig
+	L1BlockBuilderTip          *big.Int
 }
 
 // NewConfigFromCliContext initializes a Config instance from
@@ -63,15 +64,15 @@ func NewConfigFromCliContext(c *cli.Context) (*Config, error) {
 		return nil, fmt.Errorf("invalid L2 suggested fee recipient address: %s", l2SuggestedFeeRecipient)
 	}
 
-	// var localAddresses []common.Address
-	// if c.IsSet(flags.TxPoolLocals.Name) {
-	// 	for _, account := range strings.Split(c.String(flags.TxPoolLocals.Name), ",") {
-	// 		if trimmed := strings.TrimSpace(account); !common.IsHexAddress(trimmed) {
-	// 			return nil, fmt.Errorf("invalid account in --txpool.locals: %s", trimmed)
-	// 		}
-	// 		localAddresses = append(localAddresses, common.HexToAddress(account))
-	// 	}
-	// }
+	var localAddresses []common.Address
+	if c.IsSet(flags.TxPoolLocals.Name) {
+		for _, account := range strings.Split(c.String(flags.TxPoolLocals.Name), ",") {
+			if trimmed := strings.TrimSpace(account); !common.IsHexAddress(trimmed) {
+				return nil, fmt.Errorf("invalid account in --txpool.locals: %s", trimmed)
+			}
+			localAddresses = append(localAddresses, common.HexToAddress(account))
+		}
+	}
 
 	var proverEndpoints []*url.URL
 	for _, e := range strings.Split(c.String(flags.ProverEndpoints.Name), ",") {
@@ -105,24 +106,25 @@ func NewConfigFromCliContext(c *cli.Context) (*Config, error) {
 			ProverSetAddress:         common.HexToAddress(c.String(flags.ProverSetAddress.Name)),
 			SequencerRegistryAddress: common.HexToAddress(c.String(flags.SequencerRegistryAddress.Name)),
 		},
-		L1ProposerPrivKey:       l1ProposerPrivKey,
-		L2SuggestedFeeRecipient: common.HexToAddress(l2SuggestedFeeRecipient),
-		ExtraData:               c.String(flags.ExtraData.Name),
-		ProposeInterval:         c.Duration(flags.ProposeInterval.Name),
-		// LocalAddresses:             localAddresses,
-		// LocalAddressesOnly:         c.Bool(flags.TxPoolLocalsOnly.Name),
-		MinGasUsed:             c.Uint64(flags.MinGasUsed.Name),
-		MinTxListBytes:         c.Uint64(flags.MinTxListBytes.Name),
-		MinProposingInternal:   c.Duration(flags.MinProposingInternal.Name),
-		ProposeBlockTxGasLimit: c.Uint64(flags.TxGasLimit.Name),
-		ProverEndpoints:        proverEndpoints,
-		OptimisticTierFee:      optimisticTierFee,
-		SgxTierFee:             sgxTierFee,
-		TierFeePriceBump:       new(big.Int).SetUint64(c.Uint64(flags.TierFeePriceBump.Name)),
-		MaxTierFeePriceBumps:   c.Uint64(flags.MaxTierFeePriceBumps.Name),
-		IncludeParentMetaHash:  c.Bool(flags.ProposeBlockIncludeParentMetaHash.Name),
-		BlobAllowed:            c.Bool(flags.BlobAllowed.Name),
-		L1BlockBuilderTip:      new(big.Int).SetUint64(c.Uint64(flags.L1BlockBuilderTip.Name)),
+		L1ProposerPrivKey:          l1ProposerPrivKey,
+		L2SuggestedFeeRecipient:    common.HexToAddress(l2SuggestedFeeRecipient),
+		ExtraData:                  c.String(flags.ExtraData.Name),
+		ProposeInterval:            c.Duration(flags.ProposeInterval.Name),
+		LocalAddresses:             localAddresses,
+		LocalAddressesOnly:         c.Bool(flags.TxPoolLocalsOnly.Name),
+		MinGasUsed:                 c.Uint64(flags.MinGasUsed.Name),
+		MinTxListBytes:             c.Uint64(flags.MinTxListBytes.Name),
+		MinProposingInternal:       c.Duration(flags.MinProposingInternal.Name),
+		MaxProposedTxListsPerEpoch: c.Uint64(flags.MaxProposedTxListsPerEpoch.Name),
+		ProposeBlockTxGasLimit:     c.Uint64(flags.TxGasLimit.Name),
+		ProverEndpoints:            proverEndpoints,
+		OptimisticTierFee:          optimisticTierFee,
+		SgxTierFee:                 sgxTierFee,
+		TierFeePriceBump:           new(big.Int).SetUint64(c.Uint64(flags.TierFeePriceBump.Name)),
+		MaxTierFeePriceBumps:       c.Uint64(flags.MaxTierFeePriceBumps.Name),
+		IncludeParentMetaHash:      c.Bool(flags.ProposeBlockIncludeParentMetaHash.Name),
+		BlobAllowed:                c.Bool(flags.BlobAllowed.Name),
+		L1BlockBuilderTip:          new(big.Int).SetUint64(c.Uint64(flags.L1BlockBuilderTip.Name)),
 		TxmgrConfigs: pkgFlags.InitTxmgrConfigsFromCli(
 			c.String(flags.L1WSEndpoint.Name),
 			l1ProposerPrivKey,

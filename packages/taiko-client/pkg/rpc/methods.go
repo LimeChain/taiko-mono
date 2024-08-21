@@ -253,6 +253,8 @@ func (c *Client) UpdateL2ConfigAndSlots(
 	blockMaxGasLimit uint32,
 	maxBytesPerTxList uint64,
 	beneficiary common.Address,
+	locals []common.Address,
+	maxTransactionsLists uint64,
 ) ([]*miner.PreBuiltTxList, error) {
 	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, defaultTimeout)
 	defer cancel()
@@ -278,6 +280,11 @@ func (c *Client) UpdateL2ConfigAndSlots(
 
 	log.Info("Current base fee", "fee", utils.WeiToGWei(baseFeeInfo.Basefee))
 
+	var localsArg []string
+	for _, local := range locals {
+		localsArg = append(localsArg, local.Hex())
+	}
+
 	return c.L2Engine.UpdateConfigAndSlots(
 		ctxWithTimeout,
 		currentSlot,
@@ -286,6 +293,8 @@ func (c *Client) UpdateL2ConfigAndSlots(
 		uint64(blockMaxGasLimit),
 		maxBytesPerTxList,
 		beneficiary,
+		localsArg,
+		maxTransactionsLists,
 	)
 }
 

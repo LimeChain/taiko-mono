@@ -74,7 +74,7 @@ func (s *ProposerTestSuite) TestNewConfigFromCliContext() {
 		"--" + flags.L1ProposerPrivKey.Name, encoding.GoldenTouchPrivKey,
 		"--" + flags.L2SuggestedFeeRecipient.Name, goldenTouchAddress.Hex(),
 		"--" + flags.ProposeInterval.Name, proposeInterval,
-		// "--" + flags.TxPoolLocals.Name, goldenTouchAddress.Hex(),
+		"--" + flags.TxPoolLocals.Name, goldenTouchAddress.Hex(),
 		"--" + flags.RPCTimeout.Name, rpcTimeout,
 		"--" + flags.TxGasLimit.Name, "100000",
 		"--" + flags.ProverEndpoints.Name, proverEndpoints,
@@ -119,7 +119,7 @@ func (s *ProposerTestSuite) TestNewConfigFromCliContextTxPoolLocalsErr() {
 		"--" + flags.ProposeInterval.Name, proposeInterval,
 		"--" + flags.MinProposingInternal.Name, proposeInterval,
 		"--" + flags.L2SuggestedFeeRecipient.Name, goldenTouchAddress.Hex(),
-		// "--" + flags.TxPoolLocals.Name, "notAnAddress",
+		"--" + flags.TxPoolLocals.Name, "notAnAddress",
 	}), "invalid account in --txpool.locals")
 }
 
@@ -135,7 +135,7 @@ func (s *ProposerTestSuite) SetupApp() *cli.App {
 		&cli.StringFlag{Name: flags.L2SuggestedFeeRecipient.Name},
 		&cli.DurationFlag{Name: flags.MinProposingInternal.Name},
 		&cli.DurationFlag{Name: flags.ProposeInterval.Name},
-		// &cli.StringFlag{Name: flags.TxPoolLocals.Name},
+		&cli.StringFlag{Name: flags.TxPoolLocals.Name},
 		&cli.StringFlag{Name: flags.ProverEndpoints.Name},
 		&cli.Uint64Flag{Name: flags.OptimisticTierFee.Name},
 		&cli.Uint64Flag{Name: flags.SgxTierFee.Name},
