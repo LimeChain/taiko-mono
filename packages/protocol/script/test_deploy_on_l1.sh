@@ -23,7 +23,7 @@ NUM_MIN_MAJORITY_GUARDIANS=2 \
 NUM_MIN_MINORITY_GUARDIANS=2 \
 TIER_PROVIDER="devnet" \
 forge script script/DeployOnL1.s.sol:DeployOnL1 \
-    --fork-url localhost:51996 \
+    --fork-url localhost:32002 \
     --broadcast \
     --ffi \
     -vvvv \

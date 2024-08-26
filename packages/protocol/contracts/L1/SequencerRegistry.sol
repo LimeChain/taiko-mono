@@ -13,10 +13,9 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
     mapping(address => bool) public whitelisted;
     /// @notice BLS public key to Sequencer mapping
     mapping(bytes => Sequencer) public seqByPubkey;
-    uint256 public activationThreshold;
-    uint256 public withdrawalChallengePeriod;
+    mapping(address => bool) public registered;
 
-    uint256[44] private __gap;
+    uint256[45] private __gap;
 
     /// @dev Emitted when the status of a sequencer is updated.
     /// @param sequencer The address of the sequencer whose state has updated.
@@ -25,17 +24,8 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
 
     /// @notice Initializes the contract with the provided address manager.
     /// @param _owner The address of the owner.
-    function init(
-        address _owner,
-        uint256 _activationThreshold,
-        uint256 _withdrawalChallengePeriod
-    )
-        external
-        initializer
-    {
+    function init(address _owner) external initializer {
         __Essential_init(_owner);
-        activationThreshold = _activationThreshold;
-        withdrawalChallengePeriod = _withdrawalChallengePeriod;
     }
 
     /// @notice Registers a sequencer with its metadata.
@@ -61,6 +51,7 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
         bytes memory pubkey = _recoverPubKey(authHash, signature);
         Sequencer storage seq = seqByPubkey[pubkey];
 
+        require(registered[seq.signer] == false, "already registered");
         require(seq.signer == address(0), "already registered");
 
         seq.pubkey = pubkey;
@@ -71,6 +62,7 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
 
         allSequencers.push(pubkey);
         whitelisted[signer] = false;
+        registered[signer] = false;
 
         emit SequencerUpdated(signer, false);
     }

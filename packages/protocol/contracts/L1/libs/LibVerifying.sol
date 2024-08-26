@@ -42,7 +42,7 @@ library LibVerifying {
         IAddressResolver _resolver,
         uint64 _maxBlocksToVerify
     )
-        internal
+        public
     {
         if (_maxBlocksToVerify == 0) {
             return;
