@@ -9,8 +9,8 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
     uint8 public constant PROTOCOL_VERSION = 1;
 
     bytes[] public allSequencers;
-    /// @notice Whitelisted sequencers
-    mapping(address => bool) public whitelisted;
+    /// @notice Activated sequencers
+    mapping(address => bool) public activated;
     /// @notice BLS public key to Sequencer mapping
     mapping(bytes => Sequencer) public seqByPubkey;
     mapping(address => bool) public registered;
@@ -19,8 +19,8 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
 
     /// @dev Emitted when the status of a sequencer is updated.
     /// @param sequencer The address of the sequencer whose state has updated.
-    /// @param enabled If the sequencer is now enabled or not.
-    event SequencerUpdated(address indexed sequencer, bool enabled);
+    /// @param activated If the sequencer is now activated or not.
+    event SequencerUpdated(address indexed sequencer, bool activated);
 
     /// @notice Initializes the contract with the provided address manager.
     /// @param _owner The address of the owner.
@@ -45,13 +45,12 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
         override
     {
         require(signer != address(0), "invalid address");
+        require(registered[signer] == false, "already registered");
         // Mock signature verification and SSZ multiproof verification
         require(_verifySignature(authHash, signature), "invalid signature");
 
         bytes memory pubkey = _recoverPubKey(authHash, signature);
         Sequencer storage seq = seqByPubkey[pubkey];
-
-        require(registered[seq.signer] == false, "already registered");
         require(seq.signer == address(0), "already registered");
 
         seq.pubkey = pubkey;
@@ -61,10 +60,10 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
         seq.deactivationBlock = 0;
 
         allSequencers.push(pubkey);
-        whitelisted[signer] = false;
-        registered[signer] = false;
+        activated[signer] = false;
+        registered[signer] = true;
 
-        emit SequencerUpdated(signer, false);
+        emit SequencerUpdated(signer, activated[signer]);
     }
 
     /// @notice Changes the registration details of a sequencer.
@@ -93,7 +92,7 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
         seq.signer = signer;
         seq.metadata = metadata;
 
-        emit SequencerUpdated(signer, true);
+        emit SequencerUpdated(signer, activated[signer]);
     }
 
     /// @notice Activates a sequencer.
@@ -113,9 +112,9 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
         // Mock SSZ proof validation (Here we should validate the validatorProof)
 
         seq.activationBlock = block.number;
-        whitelisted[seq.signer] = true;
+        activated[seq.signer] = true;
 
-        emit SequencerUpdated(seq.signer, true);
+        emit SequencerUpdated(seq.signer, activated[seq.signer]);
     }
 
     /// @notice Deactivates a sequencer.
@@ -131,9 +130,9 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
         require(seq.deactivationBlock == 0, "already deactivated");
 
         seq.deactivationBlock = block.number;
-        whitelisted[seq.signer] = false;
+        activated[seq.signer] = false;
 
-        emit SequencerUpdated(seq.signer, false);
+        emit SequencerUpdated(seq.signer, activated[seq.signer]);
     }
 
     /// @notice Forcefully deactivates a sequencer.
@@ -152,7 +151,7 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
         // Mock SSZ proof validation (Here we should validate the validatorProof)
 
         seq.deactivationBlock = block.number;
-        whitelisted[seq.signer] = false;
+        activated[seq.signer] = false;
 
         emit SequencerUpdated(seq.signer, false);
     }
@@ -172,7 +171,7 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
 
     /// @inheritdoc ISequencerRegistry
     function isEligibleSigner(address proposer) public view override returns (bool) {
-        return whitelisted[proposer];
+        return activated[proposer];
     }
 
     /// @inheritdoc ISequencerRegistry
@@ -211,19 +210,18 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
     // Note that BLS signature recovery is not possible until EIP-2573 is included (currently
     // scheduled for Pectra).
     function _recoverPubKey(
-        bytes32, /*authHash*/
+        bytes32 authHash,
         bytes calldata /*signature*/
     )
         private
         pure
         returns (bytes memory)
     {
-        bytes memory b = new bytes(48);
-        address signer = address(0);
+        bytes memory publicKey = new bytes(48);
         assembly {
-            mstore(add(b, 32), shl(96, signer))
+            mstore(add(publicKey, 32), authHash)
         }
-        return b;
+        return publicKey;
     }
 
     function _verifySignature(

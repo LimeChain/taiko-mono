@@ -15,6 +15,7 @@ abstract contract TaikoL1TestBase is TaikoTest {
     GuardianProver public gp;
     TestTierProvider public cp;
     Bridge public bridge;
+    SequencerRegistry public SR;
 
     bytes32 public GENESIS_BLOCK_HASH = keccak256("GENESIS_BLOCK_HASH");
 
@@ -60,6 +61,14 @@ abstract contract TaikoL1TestBase is TaikoTest {
             })
         );
 
+        SR = SequencerRegistry(
+            deployProxy({
+                name: "sequencer_registry",
+                impl: address(new SequencerRegistry()),
+                data: abi.encodeCall(SequencerRegistry.init, address(L1))
+            })
+        );
+
         address[] memory initSgxInstances = new address[](1);
         initSgxInstances[0] = SGX_X_0;
         sv.addInstances(initSgxInstances);
@@ -92,6 +101,7 @@ abstract contract TaikoL1TestBase is TaikoTest {
         registerAddress("tier_guardian", address(gp));
         registerAddress("tier_router", address(cp));
         registerAddress("signal_service", address(ss));
+        registerAddress("sequencer_registry", address(SR));
         registerL2Address("taiko", address(L2));
         registerL2Address("signal_service", address(L2SS));
         registerL2Address("taiko_l2", address(L2));
@@ -138,6 +148,27 @@ abstract contract TaikoL1TestBase is TaikoTest {
         uint256 _difficulty;
         unchecked {
             _difficulty = block.prevrandao * b.numBlocks;
+        }
+
+        if (!SR.registered(proposer)) {
+            SR.register(
+                proposer,
+                bytes(""),
+                bytes32(uint256(uint160(proposer))),
+                bytes(""),
+                ISequencerRegistry.ValidatorProof(0, 0, 0, 0, false, 0, bytes(""))
+            );
+        }
+
+        if (!SR.isEligibleSigner(proposer)) {
+            bytes memory publicKey = new bytes(48);
+            bytes32 authHash = bytes32(uint256(uint160(proposer)));
+            assembly {
+                mstore(add(publicKey, 32), authHash)
+            }
+            L1.stakeSequencer{ value: 1 ether }(
+                publicKey, ISequencerRegistry.ValidatorProof(0, 0, 0, 0, false, 0, bytes(""))
+            );
         }
 
         // TODO: why init meta here?

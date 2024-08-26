@@ -217,8 +217,9 @@ library LibVerifying {
     /// @return The address of the fallback proposer
     function fallbackProposer(ISequencerRegistry sequencerRegistry) public view returns (address) {
         bytes32 parentBlockHash = blockhash(block.number - 1);
-        uint256 fallbackIndex =
-            uint256(parentBlockHash) % sequencerRegistry.eligibleCountAt(block.number);
+        uint256 eligibleCount = sequencerRegistry.eligibleCountAt(block.number);
+        require(eligibleCount > 0, "no eligible sequencers");
+        uint256 fallbackIndex = uint256(parentBlockHash) % eligibleCount;
         (address signer,,) = sequencerRegistry.sequencerByIndex(fallbackIndex);
         return signer;
     }

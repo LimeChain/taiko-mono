@@ -19,7 +19,7 @@ contract TaikoStake {
     {
         address staker = msg.sender;
         require(msg.value > 0, "Stake amount must not be zero");
-        require(!sequencerRegistry.whitelisted(staker), "Already whitelisted");
+        require(!sequencerRegistry.activated(staker), "Already activated");
 
         _state.stakes[staker] += msg.value;
 

@@ -20,7 +20,7 @@ interface ISequencerRegistry {
         uint256 deactivationBlock;
     }
 
-    function whitelisted(address _address) external view returns (bool);
+    function activated(address _address) external view returns (bool);
 
     /**
      *     Registers the sequencer without activating them.
