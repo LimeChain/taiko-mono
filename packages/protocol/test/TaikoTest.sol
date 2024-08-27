@@ -21,6 +21,7 @@ import "../test/L1/TestTierProvider.sol";
 import "../contracts/L1/provers/GuardianProver.sol";
 import "../contracts/bridge/QuotaManager.sol";
 import "../contracts/L1/SequencerRegistry.sol";
+import "../contracts/L1/ISequencerRegistry.sol";
 
 import "../contracts/L2/DelegateOwner.sol";
 

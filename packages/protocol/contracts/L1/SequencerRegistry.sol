@@ -9,11 +9,12 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
     uint8 public constant PROTOCOL_VERSION = 1;
 
     bytes[] public allSequencers;
+    /// @notice Registered sequencers
+    mapping(address sequencer => bool isRegistered) public registered;
     /// @notice Activated sequencers
-    mapping(address => bool) public activated;
+    mapping(address sequencer => bool isActive) public activated;
     /// @notice BLS public key to Sequencer mapping
-    mapping(bytes => Sequencer) public seqByPubkey;
-    mapping(address => bool) public registered;
+    mapping(bytes pubkey => Sequencer sequencer) public seqByPubkey;
 
     uint256[45] private __gap;
 
@@ -22,7 +23,7 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
     /// @param activated If the sequencer is now activated or not.
     event SequencerUpdated(address indexed sequencer, bool activated);
 
-    /// @notice Initializes the contract with the provided address manager.
+    /// @notice Initializes the contract.
     /// @param _owner The address of the owner.
     function init(address _owner) external initializer {
         __Essential_init(_owner);
@@ -160,7 +161,8 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
     /// @param pubkey The validator's BLS12-381 public key
     function isEligible(bytes calldata pubkey) external view override returns (bool) {
         Sequencer storage seq = seqByPubkey[pubkey];
-        return seq.activationBlock != 0 && block.number >= seq.activationBlock;
+        return seq.deactivationBlock == 0 && seq.activationBlock != 0
+            && block.number >= seq.activationBlock;
     }
 
     /// @notice Returns the status of a sequencer.
