@@ -165,83 +165,101 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 func (p *Proposer) Start() error {
 	p.wg.Add(2)
 	go p.eventLoop()
-	go p.updateL2ConfigAndSlots()
+	go p.triggerOnNewEpochStart()
 	return nil
 }
 
-// TODO(limechain): remove and implemented
-func getL1Slots() (uint64, []uint64) {
-	currentSlot := uint64(52625)
-	offset := currentSlot % 32
-	firstEpochSlot := currentSlot - offset
+// CHANGE(limechain)
 
-	assignedSlots := []uint64{
-		firstEpochSlot + 0,
-		// firstEpochSlot + 1,
-		// firstEpochSlot + 2,
-		firstEpochSlot + 3,
-		firstEpochSlot + 4,
-		firstEpochSlot + 5,
-		firstEpochSlot + 6,
-		firstEpochSlot + 7,
-		firstEpochSlot + 8,
-		firstEpochSlot + 9,
-		firstEpochSlot + 10,
-		firstEpochSlot + 11,
-		firstEpochSlot + 12,
-		firstEpochSlot + 13,
-		firstEpochSlot + 14,
-		// firstEpochSlot + 15,
-		// firstEpochSlot + 16,
-		// firstEpochSlot + 17,
-		// firstEpochSlot + 18,
-		// firstEpochSlot + 19,
-		// firstEpochSlot + 20,
-		firstEpochSlot + 21,
-		firstEpochSlot + 22,
-		firstEpochSlot + 23,
-		firstEpochSlot + 24,
-		firstEpochSlot + 25,
-		firstEpochSlot + 26,
-		firstEpochSlot + 27,
-		firstEpochSlot + 28,
-		firstEpochSlot + 39,
-		firstEpochSlot + 30,
-		firstEpochSlot + 31,
-	}
+var (
+	genesisTimestamp = uint64(1724415819) // TODO(limechain): get the genesis timestamp for the L1 chain
+	epochLength      = uint64(32)         // number of slots per epoch
+	slotDuration     = uint64(12)         // duration of each slot in seconds
+)
 
-	return currentSlot, assignedSlots
+func currentSlotAndEpoch(now int64) (uint64, uint64) {
+	elapsedTime := uint64(now) - genesisTimestamp
+	currentSlot := uint64(elapsedTime) / slotDuration
+	currentEpoch := currentSlot / epochLength
+	return currentSlot, currentEpoch
 }
 
-func (p *Proposer) updateL2ConfigAndSlots() {
+// TODO(limechain): replace this mock with the result returned from commit-boost/relayer
+func fetchAssignedSlots(currentSlot uint64) []uint64 {
+	currentEpochFirstSlot := currentSlot - currentSlot%epochLength
+	return []uint64{
+		currentEpochFirstSlot + 0,
+		// currentEpochFirstSlot + 1,
+		// currentEpochFirstSlot + 2,
+		currentEpochFirstSlot + 3,
+		currentEpochFirstSlot + 4,
+		currentEpochFirstSlot + 5,
+		currentEpochFirstSlot + 6,
+		currentEpochFirstSlot + 7,
+		currentEpochFirstSlot + 8,
+		currentEpochFirstSlot + 9,
+		currentEpochFirstSlot + 10,
+		currentEpochFirstSlot + 11,
+		currentEpochFirstSlot + 12,
+		currentEpochFirstSlot + 13,
+		currentEpochFirstSlot + 14,
+		// currentEpochFirstSlot + 15,
+		// currentEpochFirstSlot + 16,
+		// currentEpochFirstSlot + 17,
+		// currentEpochFirstSlot + 18,
+		// currentEpochFirstSlot + 19,
+		// currentEpochFirstSlot + 20,
+		currentEpochFirstSlot + 21,
+		currentEpochFirstSlot + 22,
+		currentEpochFirstSlot + 23,
+		currentEpochFirstSlot + 24,
+		currentEpochFirstSlot + 25,
+		currentEpochFirstSlot + 26,
+		currentEpochFirstSlot + 27,
+		currentEpochFirstSlot + 28,
+		currentEpochFirstSlot + 29,
+		currentEpochFirstSlot + 30,
+		currentEpochFirstSlot + 31,
+	}
+}
+
+func (p *Proposer) triggerOnNewEpochStart() {
 	defer p.wg.Done()
+
+	var lastEpoch uint64
 
 	for {
 		select {
 		case <-p.ctx.Done():
+			log.Warn("Stopping the new epoch handler")
 			return
 		default:
-			// TODO(limechain): at the beginning of each slot update the config params
-			// in Geth (base fee, max gas limit, max tx list bytes) together with the
-			// current and assigned slots
-			time.Sleep(12 * time.Second)
+			// At the beginning of new epoch, update the config params and slots in the L2 execution engine.
+			currentSlot, currentEpoch := currentSlotAndEpoch(time.Now().Unix())
 
-			currentSlot, currentAssignedSlots := getL1Slots()
+			if currentEpoch > lastEpoch {
+				lastEpoch = currentEpoch
+				log.Info("New epoch started", "epoch", currentEpoch, "slot", currentSlot)
 
-			_, err := p.rpc.UpdateL2ConfigAndSlots(
-				p.ctx,
-				currentSlot,
-				currentAssignedSlots,
-				p.protocolConfigs.BlockMaxGasLimit,
-				rpc.BlockMaxTxListBytes,
-				p.proposerAddress,
-				p.LocalAddresses,
-				p.MaxProposedTxListsPerEpoch,
-			)
-			if err != nil {
-				log.Error("Update slots and config params", "error", err)
-				continue
+				currentEpochAssignedSlots := fetchAssignedSlots(currentSlot)
+
+				_, err := p.rpc.UpdateL2ConfigAndSlots(
+					p.ctx,
+					currentEpochAssignedSlots,
+					p.protocolConfigs.BlockMaxGasLimit,
+					rpc.BlockMaxTxListBytes,
+					p.proposerAddress,
+					p.LocalAddresses,
+					p.MaxProposedTxListsPerEpoch,
+				)
+				if err != nil {
+					log.Error("Update slots and config params", "error", err)
+					continue
+				}
 			}
+
+			// Sleep for a short duration to ensure epoch changes are not missed (due to network latency, etc.)
+			time.Sleep(1 * time.Second)
 		}
 	}
 }

@@ -101,7 +101,6 @@ func (c *EngineClient) ExchangeTransitionConfiguration(
 
 func (c *EngineClient) UpdateConfigAndSlots(
 	ctx context.Context,
-	currentSlot uint64,
 	currentAssignedSlots []uint64,
 	baseFee *big.Int,
 	blockMaxGasLimit uint64,
@@ -118,7 +117,6 @@ func (c *EngineClient) UpdateConfigAndSlots(
 		timeoutCtx,
 		&result,
 		"taikoAuth_updateConfigAndSlots",
-		currentSlot,
 		currentAssignedSlots,
 		baseFee,
 		blockMaxGasLimit,
