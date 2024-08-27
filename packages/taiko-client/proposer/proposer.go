@@ -172,12 +172,11 @@ func (p *Proposer) Start() error {
 // CHANGE(limechain)
 
 var (
-	genesisTimestamp = uint64(1724415819) // TODO(limechain): get the genesis timestamp for the L1 chain
-	epochLength      = uint64(32)         // number of slots per epoch
-	slotDuration     = uint64(12)         // duration of each slot in seconds
+	epochLength  = uint64(32) // number of slots per epoch
+	slotDuration = uint64(12) // duration of each slot in seconds
 )
 
-func currentSlotAndEpoch(now int64) (uint64, uint64) {
+func (p *Proposer) currentSlotAndEpoch(genesisTimestamp uint64, now int64) (uint64, uint64) {
 	elapsedTime := uint64(now) - genesisTimestamp
 	currentSlot := uint64(elapsedTime) / slotDuration
 	currentEpoch := currentSlot / epochLength
@@ -235,7 +234,7 @@ func (p *Proposer) triggerOnNewEpochStart() {
 			return
 		default:
 			// At the beginning of new epoch, update the config params and slots in the L2 execution engine.
-			currentSlot, currentEpoch := currentSlotAndEpoch(time.Now().Unix())
+			currentSlot, currentEpoch := p.currentSlotAndEpoch(p.L1GenesisTimestamp, time.Now().Unix())
 
 			if currentEpoch > lastEpoch {
 				lastEpoch = currentEpoch
@@ -245,6 +244,7 @@ func (p *Proposer) triggerOnNewEpochStart() {
 
 				_, err := p.rpc.UpdateL2ConfigAndSlots(
 					p.ctx,
+					p.L1GenesisTimestamp,
 					currentEpochAssignedSlots,
 					p.protocolConfigs.BlockMaxGasLimit,
 					rpc.BlockMaxTxListBytes,

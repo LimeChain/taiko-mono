@@ -29,6 +29,13 @@ var (
 		Category: proposerCategory,
 		EnvVars:  []string{"L2_SUGGESTED_FEE_RECIPIENT"},
 	}
+	L1GenesisTimestamp = &cli.StringFlag{
+		Name:     "l1.genesisTimestamp",
+		Usage:    "L1 genesis timestamp used for slot and epoch calculation",
+		Required: true,
+		Category: proposerCategory,
+		EnvVars:  []string{"L1_GENESIS_TIMESTAMP"},
+	}
 	SequencerRegistryAddress = &cli.StringFlag{
 		Name:     "sequencerRegistry",
 		Usage:    "SequencerRegistry contract `address`",
@@ -156,6 +163,7 @@ var ProposerFlags = MergeFlags(CommonFlags, []cli.Flag{
 	TaikoTokenAddress,
 	L1ProposerPrivKey,
 	L2SuggestedFeeRecipient,
+	L1GenesisTimestamp,
 	ProposeInterval,
 	TxPoolLocals,
 	TxPoolLocalsOnly,

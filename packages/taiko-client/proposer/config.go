@@ -26,6 +26,7 @@ type Config struct {
 	*rpc.ClientConfig
 	L1ProposerPrivKey          *ecdsa.PrivateKey
 	L2SuggestedFeeRecipient    common.Address
+	L1GenesisTimestamp         uint64
 	ExtraData                  string
 	ProposeInterval            time.Duration
 	LocalAddresses             []common.Address
@@ -108,6 +109,7 @@ func NewConfigFromCliContext(c *cli.Context) (*Config, error) {
 		},
 		L1ProposerPrivKey:          l1ProposerPrivKey,
 		L2SuggestedFeeRecipient:    common.HexToAddress(l2SuggestedFeeRecipient),
+		L1GenesisTimestamp:         c.Uint64(flags.L1GenesisTimestamp.Name),
 		ExtraData:                  c.String(flags.ExtraData.Name),
 		ProposeInterval:            c.Duration(flags.ProposeInterval.Name),
 		LocalAddresses:             localAddresses,

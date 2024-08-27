@@ -248,6 +248,7 @@ func (c *Client) WaitL2Header(ctx context.Context, blockID *big.Int) (*types.Hea
 
 func (c *Client) UpdateL2ConfigAndSlots(
 	ctx context.Context,
+	l1GenesisTimestamp uint64,
 	currentAssignedSlots []uint64,
 	blockMaxGasLimit uint32,
 	maxBytesPerTxList uint64,
@@ -276,7 +277,6 @@ func (c *Client) UpdateL2ConfigAndSlots(
 	if err != nil {
 		return nil, err
 	}
-
 	log.Info("Current base fee", "fee", utils.WeiToGWei(baseFeeInfo.Basefee))
 
 	var localsArg []string
@@ -286,6 +286,7 @@ func (c *Client) UpdateL2ConfigAndSlots(
 
 	return c.L2Engine.UpdateConfigAndSlots(
 		ctxWithTimeout,
+		l1GenesisTimestamp,
 		currentAssignedSlots,
 		baseFeeInfo.Basefee,
 		uint64(blockMaxGasLimit),
