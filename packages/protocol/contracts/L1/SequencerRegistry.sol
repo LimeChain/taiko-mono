@@ -90,6 +90,14 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
         require(seq.signer != address(0), "not registered");
         require(signer == seq.signer, "unathorized");
 
+        address prevSigner = seq.signer;
+
+        registered[signer] = registered[prevSigner];
+        activated[signer] = activated[prevSigner];
+        
+        delete registered[prevSigner];
+        delete activated[prevSigner];
+
         seq.signer = signer;
         seq.metadata = metadata;
 
