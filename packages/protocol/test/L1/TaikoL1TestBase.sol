@@ -117,6 +117,21 @@ abstract contract TaikoL1TestBase is TaikoTest {
 
         L1.init(address(0), address(addressManager), GENESIS_BLOCK_HASH, false);
 
+        if (!SR.isRegistered(Alice)) {
+            registerValidator(Alice);
+            mine(1);
+        }
+
+        if (!SR.isEligibleSigner(Alice)) {
+            bytes memory pubkey = _getPubkey(bytes32(uint256(1)));
+            L1.stakeSequencer{ value: 1 ether }(
+                pubkey, ISequencerRegistry.ValidatorProof(0, 0, 0, 0, false, 0, bytes(""))
+            );
+            mine(10);
+        }
+
+        console.log("alo");
+
         gp.enableTaikoTokenAllowance(true);
         printVariables("init  ");
     }
@@ -148,27 +163,6 @@ abstract contract TaikoL1TestBase is TaikoTest {
         uint256 _difficulty;
         unchecked {
             _difficulty = block.prevrandao * b.numBlocks;
-        }
-
-        if (!SR.registered(proposer)) {
-            SR.register(
-                proposer,
-                bytes(""),
-                bytes32(uint256(uint160(proposer))),
-                bytes(""),
-                ISequencerRegistry.ValidatorProof(0, 0, 0, 0, false, 0, bytes(""))
-            );
-        }
-
-        if (!SR.isEligibleSigner(proposer)) {
-            bytes memory publicKey = new bytes(48);
-            bytes32 authHash = bytes32(uint256(uint160(proposer)));
-            assembly {
-                mstore(add(publicKey, 32), authHash)
-            }
-            L1.stakeSequencer{ value: 1 ether }(
-                publicKey, ISequencerRegistry.ValidatorProof(0, 0, 0, 0, false, 0, bytes(""))
-            );
         }
 
         // TODO: why init meta here?
@@ -337,5 +331,49 @@ abstract contract TaikoL1TestBase is TaikoTest {
     function mine(uint256 counts) internal {
         vm.warp(block.timestamp + 20 * counts);
         vm.roll(block.number + counts);
+    }
+
+    function registerValidator(address proposer) internal {
+        bytes memory metadata = "metadata";
+        bytes memory signature = "signature";
+        bytes32 authHash = _genAuthHash(0, SR.register.selector, proposer, metadata);
+        SR.register(
+            proposer,
+            metadata,
+            authHash,
+            signature,
+            ISequencerRegistry.ValidatorProof(0, 0, 0, 0, false, 0, bytes(""))
+        );
+    }
+
+    function _genAuthHash(
+        uint256 _nonce,
+        bytes4 _functionSelector,
+        address _signer,
+        bytes memory _metadata
+    )
+        internal
+        view
+        returns (bytes32)
+    {
+        return keccak256(
+            abi.encodePacked(
+                SR.protocolVersion(),
+                address(SR),
+                block.chainid,
+                _nonce,
+                _functionSelector,
+                _signer,
+                _metadata
+            )
+        );
+    }
+
+    function _getPubkey(bytes32 data) internal pure returns (bytes memory) {
+        bytes memory pubkey = new bytes(48);
+        assembly {
+            mstore(add(pubkey, 32), data)
+        }
+        return pubkey;
     }
 }

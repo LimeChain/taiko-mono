@@ -53,27 +53,6 @@ abstract contract TaikoL1TestGroupBase is TaikoL1TestBase {
             eoaSig = abi.encodePacked(r, s, v);
         }
 
-        if (!SR.registered(proposer)) {
-            SR.register(
-                proposer,
-                bytes(""),
-                bytes32(uint256(uint160(proposer))),
-                bytes(""),
-                ISequencerRegistry.ValidatorProof(0, 0, 0, 0, false, 0, bytes(""))
-            );
-        }
-
-        if (!SR.isEligibleSigner(proposer)) {
-            bytes memory publicKey = new bytes(48);
-            bytes32 authHash = bytes32(uint256(uint160(proposer)));
-            assembly {
-                mstore(add(publicKey, 32), authHash)
-            }
-            L1.stakeSequencer{ value: 1 ether }(
-                publicKey, ISequencerRegistry.ValidatorProof(0, 0, 0, 0, false, 0, bytes(""))
-            );
-        }
-
         vm.prank(proposer);
         if (revertReason != "") vm.expectRevert(revertReason);
         (meta,) = L1.proposeBlock{ value: 3 ether }(

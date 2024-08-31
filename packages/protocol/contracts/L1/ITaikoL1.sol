@@ -39,9 +39,13 @@ interface ITaikoL1 {
     /// @return Config struct containing configuration parameters.
     function getConfig() external pure returns (TaikoData.Config memory);
 
+    /// @notice An L1 proposer opt-in to be a sequencer to Taiko.
+    /// @dev Calls SequencerRegistry to activate the proposer.
+    /// @param _pubkey The public key of the L1 proposer.
+    /// @param _validatorProof Proof that the public key is an active L1 validator.
     function stakeSequencer(
-        bytes calldata pubkey,
-        ISequencerRegistry.ValidatorProof calldata validatorProof
+        bytes calldata _pubkey,
+        ISequencerRegistry.ValidatorProof calldata _validatorProof
     )
         external
         payable;

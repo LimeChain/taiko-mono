@@ -20,7 +20,10 @@ interface ISequencerRegistry {
         uint256 deactivationBlock;
     }
 
-    function activated(address _address) external view returns (bool);
+    event SequencerRegistered(address indexed signer, bytes pubkey);
+    event SequencerChanged(address indexed oldSigner, address indexed newSigner, bytes pubkey);
+    event SequencerActivated(address indexed signer);
+    event SequencerDeactivated(address indexed signer);
 
     /**
      *     Registers the sequencer without activating them.
@@ -37,14 +40,15 @@ interface ISequencerRegistry {
      *     The nonce derivation is a decision of the implementer but can be as simple as an
      * incremental counter.
      *     The implementation MUST check if the authHash is a
-     * keccak256(protocol_version,contract_address,chain_id,nonce).
+     * keccak256(protocol_version,contract_address,chain_id,nonce,function_selector,signer,metadata).
      *
      *     @param signer - the secp256k1 wallet that will be representing the sequencer via its
      * signatures
      *     @param metadata - metadata of the sequencer - including but not limited to version and
      * endpoint URL
      *     @param authHash - the authorisation hash -
-     * keccak256(protocol_version,contract_address,chain_id,nonce). The authorisation signature was
+     * keccak256(protocol_version,contract_address,chain_id,nonce,function_selector,signer,metadata).
+     * The authorisation signature was
      * created by signing over these bytes.
      *     @param signature - the signature over the authHash performed by the validator key
      *     @param validatorProof - all the data needed to validate the existence of the validator in
@@ -68,7 +72,8 @@ interface ISequencerRegistry {
      *     @param metadata - the new metadata of the sequencer - including but not limited to
      * version and endpoint URL
      *     @param authHash - the authorisation hash -
-     * keccak256(protocol_version,contract_address,chain_id,nonce). The authorisation signature was
+     * keccak256(protocol_version,contract_address,chain_id,nonce,function_selector,signer,metadata).
+     * The authorisation signature was
      * created by signing over these bytes.
      *     @param signature - the signature over the authHash performed by the validator key
      */
@@ -99,7 +104,8 @@ interface ISequencerRegistry {
      * before withdrawal disbursal
      *
      *     @param authHash - the authorisation hash -
-     * keccak256(protocol_version,contract_address,chain_id,nonce). The authorisation signature was
+     * keccak256(protocol_version,contract_address,chain_id,nonce,function_selector). The
+     * authorisation signature was
      * created by signing over these bytes.
      *     @param signature - the signature over the authHash performed by the validator key
      */
@@ -165,4 +171,14 @@ interface ISequencerRegistry {
      *     Returns the protocol version used for authorising the digests.
      */
     function protocolVersion() external view returns (uint8);
+
+    /**
+     *     Returns if the signer is registered as a sequencer.
+     */
+    function isRegistered(address signer) external view returns (bool);
+
+    /**
+     *     Returns the deterministically selected fallback sequencer address.
+     */
+    function fallbackSigner(uint256 blockNum) external view returns (address);
 }

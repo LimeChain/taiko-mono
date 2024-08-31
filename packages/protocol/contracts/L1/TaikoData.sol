@@ -36,6 +36,7 @@ library TaikoData {
         // The number of L2 blocks between each L2-to-L1 state root sync.
         uint8 stateRootSyncInternal;
         bool checkEOAForCalldataDA;
+        // L1 proposer staking activation treshold
         uint256 activationThreshold;
     }
 
@@ -173,8 +174,9 @@ library TaikoData {
         bytes32 __reserve1;
         SlotA slotA; // slot 5
         SlotB slotB; // slot 6
-        mapping(address proposer => uint256 stake) stakes;
-        mapping(uint64 blockId_mod_blockRingBufferSize => address proposer) blockProposers;
+        mapping(bytes32 pubkeyHash => uint256 stake) stakes; // slot 7
+        mapping(uint64 blockId_mod_blockRingBufferSize => address proposer) blockProposers; // slot
+            // 8
         uint256[42] __gap;
     }
 }

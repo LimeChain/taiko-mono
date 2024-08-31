@@ -4,11 +4,11 @@ pragma solidity 0.8.24;
 import "../common/EssentialContract.sol";
 import "./libs/LibProposing.sol";
 import "./libs/LibProving.sol";
+import "./libs/LibStaking.sol";
 import "./libs/LibVerifying.sol";
 import "./ITaikoL1.sol";
 import "./TaikoErrors.sol";
 import "./TaikoEvents.sol";
-import "./TaikoStake.sol";
 
 /// @title TaikoL1
 /// @notice This contract serves as the "base layer contract" of the Taiko protocol, providing
@@ -19,7 +19,7 @@ import "./TaikoStake.sol";
 /// by the Bridge contract.
 /// @dev Labeled in AddressResolver as "taiko"
 /// @custom:security-contact security@taiko.xyz
-contract TaikoL1 is EssentialContract, ITaikoL1, TaikoEvents, TaikoErrors, TaikoStake {
+contract TaikoL1 is EssentialContract, ITaikoL1, TaikoEvents, TaikoErrors {
     /// @notice The TaikoL1 state.
     TaikoData.State public state;
 
@@ -67,18 +67,21 @@ contract TaikoL1 is EssentialContract, ITaikoL1, TaikoEvents, TaikoErrors, Taiko
         state.__reserve1 = 0;
     }
 
+    /// @inheritdoc ITaikoL1
     function stakeSequencer(
-        bytes calldata pubkey,
-        ISequencerRegistry.ValidatorProof calldata validatorProof
+        bytes calldata _pubkey,
+        ISequencerRegistry.ValidatorProof calldata _validatorProof
     )
         external
         payable
     {
-        TaikoData.Config memory config = getConfig();
-        ISequencerRegistry sequencerRegistry =
-            ISequencerRegistry(resolve(LibStrings.B_SEQUENCER_REGISTRY, false));
-
-        TaikoStake._stakeSequencer(state, config, sequencerRegistry, pubkey, validatorProof);
+        LibStaking.stakeSequencer(
+            state,
+            getConfig(),
+            ISequencerRegistry(resolve(LibStrings.B_SEQUENCER_REGISTRY, false)),
+            _pubkey,
+            _validatorProof
+        );
     }
 
     /// @inheritdoc ITaikoL1
