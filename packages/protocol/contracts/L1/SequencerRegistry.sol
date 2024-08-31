@@ -5,81 +5,105 @@ import "../common/EssentialContract.sol";
 import "./ISequencerRegistry.sol";
 
 /// @title SequencerRegistry
+/// @notice This contract serves as registry of L1 proposers that opt-in
+/// to be Taiko sequencers. It stores the information about the status of
+/// the sequencers and their metadata.
 contract SequencerRegistry is EssentialContract, ISequencerRegistry {
+    /// @notice Protocol version
     uint8 public constant PROTOCOL_VERSION = 1;
+    /// @notice Number of blocks after activation when the sequencer becomes eligible for sequencing
+    uint8 public constant ACTIVATION_TIMEOUT = 1;
+    /// @notice Number of blocks after deactivation when the sequencer is no longer eligible for
+    /// sequencing
+    uint8 public constant DEACTIVATION_PERIOD = 2;
 
-    bytes[] public allSequencers;
-    /// @notice Whitelisted sequencers
-    mapping(address => bool) public whitelisted;
-    /// @notice BLS public key to Sequencer mapping
-    mapping(bytes => Sequencer) public seqByPubkey;
-    uint256 public activationThreshold;
-    uint256 public withdrawalChallengePeriod;
+    bytes32[] public allValidators;
+    mapping(bytes pubkey => uint256) public nonces;
+    mapping(address sequencer => bytes32 pubkeyHash) public sequencersToPubkeyHash;
+    mapping(bytes32 pubkeyHash => Sequencer sequencer) public validators;
 
-    uint256[44] private __gap;
+    uint256[46] private __gap;
 
-    /// @dev Emitted when the status of a sequencer is updated.
-    /// @param sequencer The address of the sequencer whose state has updated.
-    /// @param enabled If the sequencer is now enabled or not.
-    event SequencerUpdated(address indexed sequencer, bool enabled);
+    error SR_BLOCK_TOO_LOW();
+    error SR_INDEX_OUT_OF_BOUNDS();
+    error SR_INVALID_ADDRESS();
+    error SR_INVALID_AUTH_HASH();
+    error SR_INVALID_AUTH_SIGNATURE();
+    error SR_INVALID_PROOF();
+    error SR_NO_ELIGIBLE_SEQUENCERS();
+    error SR_SIGNER_REGISTERED();
+    error SR_VALIDATOR_NOT_REGISTERED();
+    error SR_VALIDATOR_REGISTERED();
+    error SR_VALIDATOR_DEACTIVATED();
 
-    /// @notice Initializes the contract with the provided address manager.
+    /// @notice Initializes the contract.
     /// @param _owner The address of the owner.
-    function init(
-        address _owner,
-        uint256 _activationThreshold,
-        uint256 _withdrawalChallengePeriod
-    )
-        external
-        initializer
-    {
+    function init(address _owner) external initializer {
         __Essential_init(_owner);
-        activationThreshold = _activationThreshold;
-        withdrawalChallengePeriod = _withdrawalChallengePeriod;
     }
 
-    /// @notice Registers a sequencer with its metadata.
-    /// @param signer The address of the sequencer
-    /// @param metadata Metadata associated with the sequencer
-    /// @param authHash The authorisation hash
-    /// @param signature The signature over the authHash performed by the validator key
-    /// @param // validatorProof The data needed to validate the existence of the validator
+    /// @inheritdoc ISequencerRegistry
     function register(
         address signer,
         bytes calldata metadata,
         bytes32 authHash,
         bytes calldata signature,
-        ValidatorProof calldata /*validatorProof*/
+        ValidatorProof calldata validatorProof
     )
         external
         override
     {
-        require(signer != address(0), "invalid address");
-        // Mock signature verification and SSZ multiproof verification
-        require(_verifySignature(authHash, signature), "invalid signature");
+        if (signer == address(0)) {
+            revert SR_INVALID_ADDRESS();
+        }
+        if (sequencersToPubkeyHash[signer] != bytes32(0)) {
+            revert SR_SIGNER_REGISTERED();
+        }
 
-        bytes memory pubkey = _recoverPubKey(authHash, signature);
-        Sequencer storage seq = seqByPubkey[pubkey];
+        bytes memory pubkey = _recoverPubkey(authHash, signature);
+        bytes32 _authenticationHash = _authHash(
+            PROTOCOL_VERSION,
+            address(this),
+            block.chainid,
+            nonces[pubkey],
+            this.register.selector,
+            signer,
+            metadata
+        );
 
-        require(seq.signer == address(0), "already registered");
+        if (authHash != _authenticationHash) {
+            revert SR_INVALID_AUTH_HASH();
+        }
+        if (!_verifySignature(pubkey, authHash, signature)) {
+            revert SR_INVALID_AUTH_SIGNATURE();
+        }
 
-        seq.pubkey = pubkey;
-        seq.metadata = metadata;
-        seq.signer = signer;
-        seq.activationBlock = 0; // Not activated yet
-        seq.deactivationBlock = 0;
+        if (!_verifyValidatorProof(pubkey, validatorProof)) {
+            revert SR_INVALID_PROOF();
+        }
 
-        allSequencers.push(pubkey);
-        whitelisted[signer] = false;
+        bytes32 pubkeyHash = keccak256(pubkey);
+        Sequencer storage sequencer = validators[pubkeyHash];
+        if (sequencer.signer != address(0)) {
+            revert SR_VALIDATOR_REGISTERED();
+        }
 
-        emit SequencerUpdated(signer, false);
+        unchecked {
+            sequencer.pubkey = pubkey;
+            sequencer.metadata = metadata;
+            sequencer.signer = signer;
+            sequencer.activationBlock = 0;
+            sequencer.deactivationBlock = 0;
+
+            nonces[pubkey]++;
+            sequencersToPubkeyHash[signer] = pubkeyHash;
+            allValidators.push(pubkeyHash);
+        }
+
+        emit SequencerRegistered(signer, pubkey);
     }
 
-    /// @notice Changes the registration details of a sequencer.
-    /// @param signer The new address of the sequencer
-    /// @param metadata The new metadata associated with the sequencer
-    /// @param authHash The authorisation hash
-    /// @param signature The signature over the authHash performed by the validator key
+    /// @inheritdoc ISequencerRegistry
     function changeRegistration(
         address signer,
         bytes calldata metadata,
@@ -89,172 +113,337 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
         external
         override
     {
-        require(signer != address(0), "invalid address");
-        require(_verifySignature(authHash, signature), "invalid signature");
+        if (signer == address(0)) {
+            revert SR_INVALID_ADDRESS();
+        }
+        if (sequencersToPubkeyHash[signer] != bytes32(0)) {
+            revert SR_SIGNER_REGISTERED();
+        }
 
-        bytes memory pubkey = _recoverPubKey(authHash, signature);
-        Sequencer storage seq = seqByPubkey[pubkey];
+        bytes memory pubkey = _recoverPubkey(authHash, signature);
+        bytes32 _authenticationHash = _authHash(
+            PROTOCOL_VERSION,
+            address(this),
+            block.chainid,
+            nonces[pubkey],
+            this.changeRegistration.selector,
+            signer,
+            metadata
+        );
 
-        require(seq.signer != address(0), "not registered");
-        require(signer == seq.signer, "unathorized");
+        if (authHash != _authenticationHash) {
+            revert SR_INVALID_AUTH_HASH();
+        }
+        if (!_verifySignature(pubkey, authHash, signature)) {
+            revert SR_INVALID_AUTH_SIGNATURE();
+        }
 
-        seq.signer = signer;
-        seq.metadata = metadata;
+        bytes32 pubkeyHash = keccak256(pubkey);
+        Sequencer storage sequencer = validators[pubkeyHash];
 
-        emit SequencerUpdated(signer, true);
+        if (sequencer.signer == address(0)) {
+            revert SR_VALIDATOR_NOT_REGISTERED();
+        }
+
+        address oldSigner = sequencer.signer;
+
+        unchecked {
+            sequencer.signer = signer;
+            sequencer.metadata = metadata;
+
+            nonces[pubkey]++;
+            sequencersToPubkeyHash[signer] = pubkeyHash;
+            delete sequencersToPubkeyHash[oldSigner];
+        }
+
+        emit SequencerChanged(signer, oldSigner, pubkey);
     }
 
-    /// @notice Activates a sequencer.
-    /// @param pubkey The validator's BLS12-381 public key
-    /// @param // validatorProof The data needed to validate the existence of the validator
+    /// @inheritdoc ISequencerRegistry
     function activate(
         bytes calldata pubkey,
-        ValidatorProof calldata /*validatorProof*/
+        ValidatorProof calldata validatorProof
     )
         external
         override
         onlyOwner
     {
-        Sequencer storage seq = seqByPubkey[pubkey];
-        require(seq.signer != address(0), "not registered");
-        require(seq.activationBlock == 0, "already activated");
-        // Mock SSZ proof validation (Here we should validate the validatorProof)
+        if (!_verifyValidatorProof(pubkey, validatorProof)) {
+            revert SR_INVALID_PROOF();
+        }
+
+        bytes32 pubkeyHash = keccak256(pubkey);
+        Sequencer storage seq = validators[pubkeyHash];
+
+        if (seq.signer == address(0)) {
+            revert SR_VALIDATOR_NOT_REGISTERED();
+        }
 
         seq.activationBlock = block.number;
-        whitelisted[seq.signer] = true;
+        seq.deactivationBlock = 0;
 
-        emit SequencerUpdated(seq.signer, true);
+        emit SequencerActivated(seq.signer);
     }
 
-    /// @notice Deactivates a sequencer.
-    /// @param authHash The authorisation hash
-    /// @param signature The signature over the authHash performed by the validator key
+    /// @inheritdoc ISequencerRegistry
     function deactivate(bytes32 authHash, bytes calldata signature) external override {
-        require(_verifySignature(authHash, signature), "invalid signature");
+        bytes memory pubkey = _recoverPubkey(authHash, signature);
+        bytes32 _authenticationHash = _authDeactivationHash(
+            PROTOCOL_VERSION, address(this), block.chainid, nonces[pubkey], this.deactivate.selector
+        );
 
-        bytes memory pubkey = _recoverPubKey(authHash, signature);
+        if (authHash != _authenticationHash) {
+            revert SR_INVALID_AUTH_HASH();
+        }
+        if (!_verifySignature(pubkey, authHash, signature)) {
+            revert SR_INVALID_AUTH_SIGNATURE();
+        }
 
-        Sequencer storage seq = seqByPubkey[pubkey];
-        require(seq.signer != address(0), "not registered");
-        require(seq.deactivationBlock == 0, "already deactivated");
+        bytes32 pubkeyHash = keccak256(pubkey);
+        Sequencer storage seq = validators[pubkeyHash];
 
-        seq.deactivationBlock = block.number;
-        whitelisted[seq.signer] = false;
+        if (seq.signer == address(0)) {
+            revert SR_VALIDATOR_NOT_REGISTERED();
+        }
+        if (seq.deactivationBlock != 0) {
+            revert SR_VALIDATOR_DEACTIVATED();
+        }
 
-        emit SequencerUpdated(seq.signer, false);
+        unchecked {
+            nonces[pubkey]++;
+
+            seq.deactivationBlock = block.number;
+        }
+
+        emit SequencerDeactivated(seq.signer);
     }
 
-    /// @notice Forcefully deactivates a sequencer.
-    /// @param pubkey The validator's BLS12-381 public key
-    /// @param // validatorProof The data needed to validate the existence and state of the
-    /// validator
+    /// @inheritdoc ISequencerRegistry
     function forceDeactivate(
         bytes calldata pubkey,
-        ValidatorProof calldata /*validatorProof*/
+        ValidatorProof calldata validatorProof
     )
         external
         override
     {
-        Sequencer storage seq = seqByPubkey[pubkey];
-        require(seq.signer != address(0), "not registered");
-        // Mock SSZ proof validation (Here we should validate the validatorProof)
+        if (!_verifyValidatorProof(pubkey, validatorProof)) {
+            revert SR_INVALID_PROOF();
+        }
+
+        bytes32 pubkeyHash = keccak256(pubkey);
+        Sequencer storage seq = validators[pubkeyHash];
+        if (seq.signer == address(0)) {
+            revert SR_VALIDATOR_NOT_REGISTERED();
+        }
+        if (seq.deactivationBlock != 0) {
+            revert SR_VALIDATOR_DEACTIVATED();
+        }
 
         seq.deactivationBlock = block.number;
-        whitelisted[seq.signer] = false;
 
-        emit SequencerUpdated(seq.signer, false);
+        emit SequencerDeactivated(seq.signer);
     }
 
-    /// @notice Checks if a sequencer is eligible.
-    /// @param pubkey The validator's BLS12-381 public key
+    /// @inheritdoc ISequencerRegistry
     function isEligible(bytes calldata pubkey) external view override returns (bool) {
-        Sequencer storage seq = seqByPubkey[pubkey];
-        return seq.activationBlock != 0 && block.number >= seq.activationBlock;
-    }
+        bytes32 pubkeyHash = keccak256(pubkey);
+        Sequencer memory sequencer = validators[pubkeyHash];
 
-    /// @notice Returns the status of a sequencer.
-    /// @param pubkey The validator's BLS12-381 public key
-    function statusOf(bytes calldata pubkey) external view override returns (Sequencer memory) {
-        return seqByPubkey[pubkey];
+        return _isEligibleSequencer(sequencer, block.number);
     }
 
     /// @inheritdoc ISequencerRegistry
-    function isEligibleSigner(address proposer) public view override returns (bool) {
-        return whitelisted[proposer];
+    function statusOf(bytes calldata pubkey)
+        external
+        view
+        override
+        returns (Sequencer memory data)
+    {
+        bytes32 pubkeyHash = keccak256(pubkey);
+        return validators[pubkeyHash];
     }
 
     /// @inheritdoc ISequencerRegistry
-    function eligibleCountAt(uint256 blockNumber) external view override returns (uint256) {
+    function isEligibleSigner(address signer) external view override returns (bool) {
+        bytes32 pubkeyHash = sequencersToPubkeyHash[signer];
+        if (pubkeyHash == bytes32(0)) {
+            return false;
+        }
+
+        Sequencer memory sequencer = validators[pubkeyHash];
+
+        return _isEligibleSequencer(sequencer, block.number);
+    }
+
+    /// @inheritdoc ISequencerRegistry
+    function sequencerByIndex(uint256 index)
+        external
+        view
+        override
+        returns (address signer, bytes memory metadata, bytes memory pubkey)
+    {
+        if (index >= allValidators.length) {
+            revert SR_INDEX_OUT_OF_BOUNDS();
+        }
+
+        bytes32 pubkeyHash = allValidators[index];
+        Sequencer memory seq = validators[pubkeyHash];
+
+        return (seq.signer, seq.metadata, seq.pubkey);
+    }
+
+    /// @inheritdoc ISequencerRegistry
+    function eligibleCountAt(uint256 blockNumber) public view override returns (uint256) {
         uint256 count = 0;
-        for (uint256 i = 0; i < allSequencers.length; i++) {
-            bytes memory pubkey = allSequencers[i];
-            Sequencer storage seq = seqByPubkey[pubkey];
-            if (isEligibleSigner(seq.signer) && seq.activationBlock <= blockNumber) {
+        for (uint256 i = 0; i < allValidators.length; i++) {
+            if (_isEligibleSequencer(validators[allValidators[i]], blockNumber)) {
                 count++;
             }
         }
+
         return count;
     }
 
     /// @inheritdoc ISequencerRegistry
-    function sequencerByIndex(uint256 _index)
-        external
-        view
-        override
-        returns (address, bytes memory, bytes memory)
-    {
-        if (_index >= allSequencers.length) {
-            revert("index out of bounds");
-        }
-
-        bytes memory pubkey = allSequencers[_index];
-        Sequencer storage seq = seqByPubkey[pubkey];
-        bytes memory metadata = seq.metadata;
-
-        return (seq.signer, metadata, pubkey);
+    function activationTimeout() external pure override returns (uint8) {
+        return ACTIVATION_TIMEOUT;
     }
 
-    // TODO: The implementations must recover the 48 bytes BLS12 pub key - pubkey - of the caller
-    // through the signature recovery process over the signature and authHash.
-    // Note that BLS signature recovery is not possible until EIP-2573 is included (currently
-    // scheduled for Pectra).
-    function _recoverPubKey(
-        bytes32, /*authHash*/
-        bytes calldata /*signature*/
-    )
-        private
-        pure
-        returns (bytes memory)
-    {
-        bytes memory b = new bytes(48);
-        address signer = address(0);
+    /// @inheritdoc ISequencerRegistry
+    function deactivationPeriod() external pure override returns (uint8) {
+        return DEACTIVATION_PERIOD;
+    }
+
+    /// @inheritdoc ISequencerRegistry
+    function protocolVersion() external pure override returns (uint8) {
+        return PROTOCOL_VERSION;
+    }
+
+    /// @inheritdoc ISequencerRegistry
+    function isRegistered(address signer) external view returns (bool) {
+        return sequencersToPubkeyHash[signer] != bytes32(0);
+    }
+
+    /// @notice Deterministic fallback selection.
+    /// @dev Takes the 10th parent block of the given block as a seed.
+    /// Using the seed it takes the mod of the current eligible sequencers.
+    /// Works only for the last 256 blocks.
+    /// @param _blockNum Target block number.
+    /// @return The address of the fallback proposer
+    function fallbackSigner(uint256 _blockNum) external view override returns (address) {
+        if (_blockNum < 10) {
+            revert SR_BLOCK_TOO_LOW();
+        }
+        bytes32 parentBlockHash = blockhash(_blockNum - 10);
+
+        address[] memory eligibleAt = _eligibleAt(_blockNum);
+        if (eligibleAt.length == 0) {
+            revert SR_NO_ELIGIBLE_SEQUENCERS();
+        }
+
+        uint256 fallbackIndex = uint256(parentBlockHash) % eligibleAt.length;
+
+        return eligibleAt[fallbackIndex];
+    }
+
+    function _eligibleAt(uint256 _blockNum) internal view returns (address[] memory) {
+        uint256 count = eligibleCountAt(_blockNum);
+
+        address[] memory eligible = new address[](count);
+        uint256 index = 0;
+
+        for (uint256 i = 0; i < allValidators.length; i++) {
+            Sequencer memory seq = validators[allValidators[i]];
+            if (_isEligibleSequencer(seq, _blockNum)) {
+                eligible[index] = seq.signer;
+                index++;
+            }
+        }
+
+        return eligible;
+    }
+
+    /// @dev Recovers the 48 bytes BLS12 pub key - pubkey - of the caller
+    /// through the signature recovery process over the signature and authHash.
+    function _recoverPubkey(bytes32, bytes calldata) private pure returns (bytes memory) {
+        // TODO: Implement once BLS signature recovery is supported (after EIP-2573) is merged.
+        bytes32 one = bytes32(uint256(1));
+        bytes memory pubkey = new bytes(48);
         assembly {
-            mstore(add(b, 32), shl(96, signer))
+            mstore(add(pubkey, 32), one)
         }
-        return b;
+
+        return pubkey;
     }
 
-    function _verifySignature(
-        bytes32, /*authHash*/
-        bytes calldata /*signature*/
+    /// @dev Verifies the 48 bytes BLS12 pub key through signature verification
+    function _verifySignature(bytes memory, bytes32, bytes calldata) private pure returns (bool) {
+        // TODO: Implement once BLS signatures are supported (after EIP-2573)
+        return true;
+    }
+
+    /// @notice Verifies that the validator exists on the beacon chain.
+    function _verifyValidatorProof(
+        bytes memory,
+        ValidatorProof calldata
     )
         private
         pure
         returns (bool)
     {
-        // Mock signature verification
+        /// TODO: Out of proposal scope.
         return true;
     }
 
-    function activationTimeout() external pure override returns (uint8) {
-        return 1; // Placeholder
+    function _isEligibleSequencer(
+        Sequencer memory seq,
+        uint256 blockNumber
+    )
+        internal
+        pure
+        returns (bool)
+    {
+        if (seq.deactivationBlock == 0) {
+            return
+                seq.activationBlock > 0 && blockNumber >= seq.activationBlock + ACTIVATION_TIMEOUT;
+        }
+        return seq.activationBlock > 0 && blockNumber >= seq.activationBlock + ACTIVATION_TIMEOUT
+            && blockNumber < seq.deactivationBlock + DEACTIVATION_PERIOD;
     }
 
-    function deactivationPeriod() external pure override returns (uint8) {
-        return 1; // Placeholder
+    function _authHash(
+        uint8 _protocolVersion,
+        address _contract,
+        uint256 _chainid,
+        uint256 _nonce,
+        bytes4 _functionSelector,
+        address _signer,
+        bytes calldata _metadata
+    )
+        internal
+        pure
+        returns (bytes32)
+    {
+        return keccak256(
+            abi.encodePacked(
+                _protocolVersion, _contract, _chainid, _nonce, _functionSelector, _signer, _metadata
+            )
+        );
     }
 
-    function protocolVersion() external pure override returns (uint8) {
-        return PROTOCOL_VERSION;
+    function _authDeactivationHash(
+        uint8 _protocolVersion,
+        address _contract,
+        uint256 _chainid,
+        uint256 _nonce,
+        bytes4 _functionSelector
+    )
+        internal
+        pure
+        returns (bytes32)
+    {
+        return keccak256(
+            abi.encodePacked(_protocolVersion, _contract, _chainid, _nonce, _functionSelector)
+        );
     }
 }

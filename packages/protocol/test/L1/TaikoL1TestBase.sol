@@ -15,6 +15,7 @@ abstract contract TaikoL1TestBase is TaikoTest {
     GuardianProver public gp;
     TestTierProvider public cp;
     Bridge public bridge;
+    SequencerRegistry public SR;
 
     bytes32 public GENESIS_BLOCK_HASH = keccak256("GENESIS_BLOCK_HASH");
 
@@ -60,6 +61,14 @@ abstract contract TaikoL1TestBase is TaikoTest {
             })
         );
 
+        SR = SequencerRegistry(
+            deployProxy({
+                name: "sequencer_registry",
+                impl: address(new SequencerRegistry()),
+                data: abi.encodeCall(SequencerRegistry.init, address(L1))
+            })
+        );
+
         address[] memory initSgxInstances = new address[](1);
         initSgxInstances[0] = SGX_X_0;
         sv.addInstances(initSgxInstances);
@@ -92,6 +101,7 @@ abstract contract TaikoL1TestBase is TaikoTest {
         registerAddress("tier_guardian", address(gp));
         registerAddress("tier_router", address(cp));
         registerAddress("signal_service", address(ss));
+        registerAddress("sequencer_registry", address(SR));
         registerL2Address("taiko", address(L2));
         registerL2Address("signal_service", address(L2SS));
         registerL2Address("taiko_l2", address(L2));
@@ -106,6 +116,21 @@ abstract contract TaikoL1TestBase is TaikoTest {
         );
 
         L1.init(address(0), address(addressManager), GENESIS_BLOCK_HASH, false);
+
+        if (!SR.isRegistered(Alice)) {
+            registerValidator(Alice);
+            mine(1);
+        }
+
+        if (!SR.isEligibleSigner(Alice)) {
+            bytes memory pubkey = _getPubkey(bytes32(uint256(1)));
+            L1.stakeSequencer{ value: 1 ether }(
+                pubkey, ISequencerRegistry.ValidatorProof(0, 0, 0, 0, false, 0, bytes(""))
+            );
+            mine(10);
+        }
+
+        console.log("alo");
 
         gp.enableTaikoTokenAllowance(true);
         printVariables("init  ");
@@ -306,5 +331,49 @@ abstract contract TaikoL1TestBase is TaikoTest {
     function mine(uint256 counts) internal {
         vm.warp(block.timestamp + 20 * counts);
         vm.roll(block.number + counts);
+    }
+
+    function registerValidator(address proposer) internal {
+        bytes memory metadata = "metadata";
+        bytes memory signature = "signature";
+        bytes32 authHash = _genAuthHash(0, SR.register.selector, proposer, metadata);
+        SR.register(
+            proposer,
+            metadata,
+            authHash,
+            signature,
+            ISequencerRegistry.ValidatorProof(0, 0, 0, 0, false, 0, bytes(""))
+        );
+    }
+
+    function _genAuthHash(
+        uint256 _nonce,
+        bytes4 _functionSelector,
+        address _signer,
+        bytes memory _metadata
+    )
+        internal
+        view
+        returns (bytes32)
+    {
+        return keccak256(
+            abi.encodePacked(
+                SR.protocolVersion(),
+                address(SR),
+                block.chainid,
+                _nonce,
+                _functionSelector,
+                _signer,
+                _metadata
+            )
+        );
+    }
+
+    function _getPubkey(bytes32 data) internal pure returns (bytes memory) {
+        bytes memory pubkey = new bytes(48);
+        assembly {
+            mstore(add(pubkey, 32), data)
+        }
+        return pubkey;
     }
 }

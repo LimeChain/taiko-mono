@@ -3,14 +3,12 @@ pragma solidity 0.8.24;
 
 import "../common/EssentialContract.sol";
 import "./libs/LibProposing.sol";
-// Note: commented code to reduce the code size of the contract,
-// so it can be deployed below the limit of 24576 during the POC
-// import "./libs/LibProving.sol";
+import "./libs/LibProving.sol";
+import "./libs/LibStaking.sol";
 import "./libs/LibVerifying.sol";
 import "./ITaikoL1.sol";
 import "./TaikoErrors.sol";
 import "./TaikoEvents.sol";
-import "./TaikoStake.sol";
 
 /// @title TaikoL1
 /// @notice This contract serves as the "base layer contract" of the Taiko protocol, providing
@@ -21,7 +19,7 @@ import "./TaikoStake.sol";
 /// by the Bridge contract.
 /// @dev Labeled in AddressResolver as "taiko"
 /// @custom:security-contact security@taiko.xyz
-contract TaikoL1 is EssentialContract, ITaikoL1, TaikoEvents, TaikoErrors, TaikoStake {
+contract TaikoL1 is EssentialContract, ITaikoL1, TaikoEvents, TaikoErrors {
     /// @notice The TaikoL1 state.
     TaikoData.State public state;
 
@@ -69,18 +67,21 @@ contract TaikoL1 is EssentialContract, ITaikoL1, TaikoEvents, TaikoErrors, Taiko
         state.__reserve1 = 0;
     }
 
+    /// @inheritdoc ITaikoL1
     function stakeSequencer(
-        bytes calldata pubkey,
-        ISequencerRegistry.ValidatorProof calldata validatorProof
+        bytes calldata _pubkey,
+        ISequencerRegistry.ValidatorProof calldata _validatorProof
     )
         external
         payable
     {
-        TaikoData.Config memory config = getConfig();
-        ISequencerRegistry sequencerRegistry =
-            ISequencerRegistry(resolve(LibStrings.B_SEQUENCER_REGISTRY, false));
-
-        TaikoStake._stakeSequencer(state, config, sequencerRegistry, pubkey, validatorProof);
+        LibStaking.stakeSequencer(
+            state,
+            getConfig(),
+            ISequencerRegistry(resolve(LibStrings.B_SEQUENCER_REGISTRY, false)),
+            _pubkey,
+            _validatorProof
+        );
     }
 
     /// @inheritdoc ITaikoL1
@@ -116,25 +117,22 @@ contract TaikoL1 is EssentialContract, ITaikoL1, TaikoEvents, TaikoErrors, Taiko
         nonReentrant
         emitEventForClient
     {
-        // Note: commented code to reduce the code size of the contract,
-        // so it can be deployed below the limit of 24576 during the POC
-        // (
-        //     TaikoData.BlockMetadata memory meta,
-        //     TaikoData.Transition memory tran,
-        //     TaikoData.TierProof memory proof
-        // ) = abi.decode(_input, (TaikoData.BlockMetadata, TaikoData.Transition,
-        // TaikoData.TierProof));
+        (
+            TaikoData.BlockMetadata memory meta,
+            TaikoData.Transition memory tran,
+            TaikoData.TierProof memory proof
+        ) = abi.decode(_input, (TaikoData.BlockMetadata, TaikoData.Transition, TaikoData.TierProof));
 
-        // if (_blockId != meta.id) revert L1_INVALID_BLOCK_ID();
+        if (_blockId != meta.id) revert L1_INVALID_BLOCK_ID();
 
-        // TaikoData.Config memory config = getConfig();
-        // TaikoToken tko = TaikoToken(resolve(LibStrings.B_TAIKO_TOKEN, false));
+        TaikoData.Config memory config = getConfig();
+        TaikoToken tko = TaikoToken(resolve(LibStrings.B_TAIKO_TOKEN, false));
 
-        // LibProving.proveBlock(state, tko, config, this, meta, tran, proof);
+        LibProving.proveBlock(state, tko, config, this, meta, tran, proof);
 
-        // if (LibUtils.shouldVerifyBlocks(config, meta.id, false)) {
-        //     LibVerifying.verifyBlocks(state, tko, config, this, config.maxBlocksToVerify);
-        // }
+        if (LibUtils.shouldVerifyBlocks(config, meta.id, false)) {
+            LibVerifying.verifyBlocks(state, tko, config, this, config.maxBlocksToVerify);
+        }
     }
 
     /// @inheritdoc ITaikoL1
@@ -232,9 +230,7 @@ contract TaikoL1 is EssentialContract, ITaikoL1, TaikoEvents, TaikoErrors, Taiko
     /// @inheritdoc ITaikoL1
     function pauseProving(bool _pause) external {
         _authorizePause(msg.sender, _pause);
-        // Note: commented code to reduce the code size of the contract,
-        // so it can be deployed below the limit of 24576 during the POC
-        // LibProving.pauseProving(state, _pause);
+        LibProving.pauseProving(state, _pause);
     }
 
     /// @inheritdoc EssentialContract

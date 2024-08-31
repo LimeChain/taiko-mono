@@ -271,14 +271,7 @@ contract DeployOnL1 is DeployCapability {
         deployProxy({
             name: "sequencer_registry",
             impl: address(new SequencerRegistry()),
-            data: abi.encodeCall(
-                SequencerRegistry.init,
-                (
-                    taikoL1,
-                    1, // Placeholder
-                    1 // Placeholder
-                )
-            ),
+            data: abi.encodeCall(SequencerRegistry.init, taikoL1),
             registerTo: rollupAddressManager
         });
 

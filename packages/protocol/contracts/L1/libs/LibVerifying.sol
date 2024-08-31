@@ -42,7 +42,7 @@ library LibVerifying {
         IAddressResolver _resolver,
         uint64 _maxBlocksToVerify
     )
-        internal
+        public
     {
         if (_maxBlocksToVerify == 0) {
             return;
@@ -84,10 +84,13 @@ library LibVerifying {
                 local.slot = local.blockId % _config.blockRingBufferSize;
 
                 blk = _state.blocks[local.slot];
-                address proposer = _state.blockProposers[local.slot];
                 if (blk.blockId != local.blockId) revert L1_BLOCK_MISMATCH();
 
-                validateProposer(proposer, _resolver);
+                validateProposer(
+                    _state.blockProposers[local.slot],
+                    ISequencerRegistry(_resolver.resolve(LibStrings.B_SEQUENCER_REGISTRY, false)),
+                    blk.proposedIn
+                );
 
                 local.tid = LibUtils.getTransitionId(_state, blk, local.slot, local.blockHash);
                 // When `tid` is 0, it indicates that there is no proven
@@ -196,30 +199,25 @@ library LibVerifying {
     }
 
     /// @notice Validates if the given address is an active proposer
-    /// @param proposer The address of the proposer
-    function validateProposer(address proposer, IAddressResolver _resolver) internal view {
-        ISequencerRegistry sequencerRegistry =
-            ISequencerRegistry(_resolver.resolve(LibStrings.B_SEQUENCER_REGISTRY, false));
-
-        if (!sequencerRegistry.isEligibleSigner(proposer)) {
-            address _fallbackProposer = fallbackProposer(sequencerRegistry);
+    /// @param _proposer The address of the proposer
+    /// @param _sequencerRegistry The sequencer registry
+    /// @param _blockNumber The L2 block's proposedIn L1 block number.
+    function validateProposer(
+        address _proposer,
+        ISequencerRegistry _sequencerRegistry,
+        uint256 _blockNumber
+    )
+        internal
+        view
+    {
+        if (!_sequencerRegistry.isEligibleSigner(_proposer)) {
+            address fallbackProposer = _sequencerRegistry.fallbackSigner(_blockNumber);
             if (
-                _fallbackProposer == address(0)
-                    || !sequencerRegistry.isEligibleSigner(_fallbackProposer)
+                fallbackProposer == address(0)
+                    || !_sequencerRegistry.isEligibleSigner(fallbackProposer)
             ) {
                 revert L1_INVALID_PROPOSER();
             }
         }
-    }
-
-    /// @notice Selects a fallback proposer based on the parent block hash
-    /// @param sequencerRegistry The sequencerRegistry contract address
-    /// @return The address of the fallback proposer
-    function fallbackProposer(ISequencerRegistry sequencerRegistry) public view returns (address) {
-        bytes32 parentBlockHash = blockhash(block.number - 1);
-        uint256 fallbackIndex =
-            uint256(parentBlockHash) % sequencerRegistry.eligibleCountAt(block.number);
-        (address signer,,) = sequencerRegistry.sequencerByIndex(fallbackIndex);
-        return signer;
     }
 }
