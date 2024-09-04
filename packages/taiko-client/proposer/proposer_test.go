@@ -179,11 +179,6 @@ func (s *ProposerTestSuite) TestProposeOpNoEmptyBlock() {
 	for i := 0; i < 3 && len(preBuiltTxList) == 0; i++ {
 		preBuiltTxList, err = s.RPCClient.FetchTxList(
 			context.Background(),
-			p.proposerAddress,
-			p.protocolConfigs.BlockMaxGasLimit,
-			rpc.BlockMaxTxListBytes,
-			p.LocalAddresses,
-			p.MaxProposedTxListsPerEpoch,
 		)
 		time.Sleep(time.Second)
 	}

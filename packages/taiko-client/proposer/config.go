@@ -40,6 +40,8 @@ type Config struct {
 	SgxTierFee                 *big.Int
 	TierFeePriceBump           *big.Int
 	MaxTierFeePriceBumps       uint64
+	MaxProposerDutiesSlots     uint64
+	ProposerDutiesUpdateFreq   uint64
 	IncludeParentMetaHash      bool
 	BlobAllowed                bool
 	TxmgrConfigs               *txmgr.CLIConfig
@@ -96,6 +98,7 @@ func NewConfigFromCliContext(c *cli.Context) (*Config, error) {
 	return &Config{
 		ClientConfig: &rpc.ClientConfig{
 			L1Endpoint:               c.String(flags.L1WSEndpoint.Name),
+			L1BeaconEndpoint:         c.String(flags.L1BeaconEndpoint.Name),
 			L2Endpoint:               c.String(flags.L2HTTPEndpoint.Name),
 			TaikoL1Address:           common.HexToAddress(c.String(flags.TaikoL1Address.Name)),
 			TaikoL2Address:           common.HexToAddress(c.String(flags.TaikoL2Address.Name)),
@@ -122,6 +125,8 @@ func NewConfigFromCliContext(c *cli.Context) (*Config, error) {
 		SgxTierFee:                 sgxTierFee,
 		TierFeePriceBump:           new(big.Int).SetUint64(c.Uint64(flags.TierFeePriceBump.Name)),
 		MaxTierFeePriceBumps:       c.Uint64(flags.MaxTierFeePriceBumps.Name),
+		MaxProposerDutiesSlots:     c.Uint64(flags.MaxProposerDutiesSlots.Name),
+		ProposerDutiesUpdateFreq:   c.Uint64(flags.ProposerDutiesUpdateFreq.Name),
 		IncludeParentMetaHash:      c.Bool(flags.ProposeBlockIncludeParentMetaHash.Name),
 		BlobAllowed:                c.Bool(flags.BlobAllowed.Name),
 		L1BlockBuilderTip:          new(big.Int).SetUint64(c.Uint64(flags.L1BlockBuilderTip.Name)),

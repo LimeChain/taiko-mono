@@ -3,9 +3,13 @@ package proposer
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
+	"math/big"
 	"math/rand"
+	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
@@ -36,8 +40,15 @@ type Proposer struct {
 	// RPC clients
 	rpc *rpc.Client
 
+	// Current L1 slot
+	headSlot atomic.Value
+
+	proposerDutiesSlot atomic.Value
+	proposerDuties     []*rpc.ProposerDuty
+
 	// Private keys and account addresses
-	proposerAddress common.Address
+	proposerAddress     common.Address
+	proposerPubKeyBytes []byte
 
 	proposingTimer *time.Timer
 
@@ -74,6 +85,7 @@ func (p *Proposer) InitFromCli(ctx context.Context, c *cli.Context) error {
 // InitFromConfig initializes the proposer instance based on the given configurations.
 func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) {
 	p.proposerAddress = crypto.PubkeyToAddress(cfg.L1ProposerPrivKey.PublicKey)
+	p.proposerPubKeyBytes = crypto.FromECDSAPub(&cfg.L1ProposerPrivKey.PublicKey)
 	p.ctx = ctx
 	p.Config = cfg
 	p.lastProposedAt = time.Now()
@@ -163,10 +175,171 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 
 // Start starts the proposer's main loop.
 func (p *Proposer) Start() error {
-	p.wg.Add(2)
+	p.wg.Add(3)
+	go p.subscribeL1()
 	go p.buildTxList()
 	go p.eventLoop()
 	return nil
+}
+
+func (p *Proposer) subscribeL1() {
+	var (
+		l1HeadCh  = make(chan *types.Header, 10)
+		l1HeadSub = rpc.SubscribeChainHead(p.rpc.L1, l1HeadCh)
+	)
+
+	defer func() {
+		l1HeadSub.Unsubscribe()
+		p.wg.Done()
+	}()
+
+	for {
+		select {
+		case <-p.ctx.Done():
+			return
+		case newHead := <-l1HeadCh:
+			if err := p.syncL1ProposerSlots(p.ctx, newHead); err != nil {
+				log.Error("Sync L1 proposer slots operation error", "error", err)
+				continue
+			}
+		}
+	}
+}
+
+func (p *Proposer) syncL1ProposerSlots(ctx context.Context, l1Head *types.Header) error {
+	if l1Head == nil {
+		log.Warn("Empty new L1 head")
+		return nil
+	}
+
+	// Wait until L1 execution engine is synced at first.
+	progress, err := p.rpc.L1.SyncProgress(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to wait until L1 execution engine synced: %w", err)
+	}
+
+	if progress != nil {
+		log.Warn("L1 execution engine is not synced yet")
+		return nil
+	}
+
+	headSlot, err := p.rpc.L1Beacon.GetHeadSlot(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get current slot: %w", err)
+	}
+
+	prevHeadSlot := p.headSlot.Swap(*headSlot)
+
+	if prevHeadSlot == *headSlot {
+		log.Info("L1 proposer slots are already synced", "headSlot", *headSlot)
+		return nil
+	}
+
+	log.Info(
+		"Start synching L1 proposer slots",
+		"height", l1Head.Number,
+		"headSlot", p.headSlot,
+	)
+
+	if p.shouldUpdateDuties(*headSlot) {
+		if err := p.updateProposerDuties(p.ctx, *headSlot, l1Head.Number); err != nil {
+			return fmt.Errorf("failed to update proposer duties: %w", err)
+		}
+	}
+
+	p.proposerDutiesSlot.Store(headSlot)
+
+	return nil
+}
+func (p *Proposer) updateProposerDuties(ctx context.Context, headSlot uint64, height *big.Int) error {
+	proposerDuties, err := p.rpc.L1Beacon.GetNextProposerDuties(ctx, headSlot, p.MaxProposerDutiesSlots)
+	if err != nil {
+		return fmt.Errorf("failed to get next proposer duties: %w", err)
+	}
+
+	if len(proposerDuties) == 0 {
+		log.Warn("Empty proposer duties")
+		return nil
+	}
+
+	var wg sync.WaitGroup
+	errors := make(chan error, len(proposerDuties))
+	var mu sync.Mutex
+
+	for i, duty := range proposerDuties {
+		wg.Add(1)
+		go func(duty *rpc.ProposerDuty, index int) {
+			defer wg.Done()
+			updatedDuty, err := p.handleDuty(ctx, duty, index, headSlot, height)
+			if err != nil {
+				errors <- err
+				return
+			}
+
+			mu.Lock()
+			proposerDuties[index] = updatedDuty
+			mu.Unlock()
+		}(duty, i)
+	}
+
+	wg.Wait()
+	close(errors)
+
+	for err := range errors {
+		if err != nil {
+			return err
+		}
+	}
+
+	p.proposerDuties = proposerDuties
+
+	return nil
+}
+
+func (p *Proposer) handleDuty(ctx context.Context, duty *rpc.ProposerDuty, index int, headSlot uint64, height *big.Int) (*rpc.ProposerDuty, error) {
+	pubKeyBytes, err := hex.DecodeString(duty.PubKey)
+	if err != nil {
+		return duty, fmt.Errorf("failed to decode public key: %w", err)
+	}
+
+	if !bytes.Equal(pubKeyBytes, p.proposerPubKeyBytes) {
+		log.Warn("Proposer duty's public key does not match with the proposer's public key")
+
+		isEligible, err := p.rpc.SequencerRegistry.IsEligible(&bind.CallOpts{Context: ctx}, pubKeyBytes)
+		if err != nil {
+			return duty, fmt.Errorf("failed to get IsEligibleSignerr: %w", err)
+		}
+
+		if !isEligible {
+			dutySlot, err := strconv.Atoi(duty.Slot)
+			if err != nil {
+				return duty, fmt.Errorf("failed to convert duty slot to integer: %w", err)
+			}
+
+			blockNum := height.Add(height, big.NewInt(int64(dutySlot)-int64(headSlot)))
+
+			fallbackSigner, err := p.rpc.SequencerRegistry.FallbackSigner(&bind.CallOpts{Context: ctx}, blockNum)
+			if err != nil {
+				return duty, fmt.Errorf("failed to get IsEligibleSigner: %w", err)
+			}
+
+			if fallbackSigner == p.proposerAddress {
+				log.Info("Fallback signer is the proposer")
+				duty.PubKey = hex.EncodeToString(p.proposerPubKeyBytes)
+			}
+		}
+	}
+	return duty, nil
+}
+
+func (p *Proposer) shouldUpdateDuties(headSlot uint64) bool {
+	proposerDutiesSlot := p.proposerDutiesSlot.Load()
+	if proposerDutiesSlot == nil {
+		return true
+	}
+	lastProposerDutyDistance := headSlot - *proposerDutiesSlot.(*uint64)
+	return headSlot%p.ProposerDutiesUpdateFreq == 0 ||
+		lastProposerDutyDistance >= p.ProposerDutiesUpdateFreq
 }
 
 func (p *Proposer) buildTxList() {

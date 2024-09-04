@@ -96,6 +96,20 @@ var (
 		Value:    0,
 		EnvVars:  []string{"EPOCH_MIN_PROPOSING_INTERNAL"},
 	}
+	MaxProposerDutiesSlots = &cli.Uint64Flag{
+		Name:     "epoch.maxProposerDutiesSlots",
+		Usage:    "The count of the proposer duties slots the proposer will track if it can propose a block",
+		Category: proposerCategory,
+		Value:    10,
+		EnvVars:  []string{"EPOCH_MAX_PROPOSER_DUTIES_SLOTS"},
+	}
+	ProposerDutiesUpdateFreq = &cli.Uint64Flag{
+		Name:     "epoch.proposerDutiesUpdateFreq",
+		Usage:    "The frequency of updating proposer duties slots",
+		Category: proposerCategory,
+		Value:    8,
+		EnvVars:  []string{"EPOCH_PROPOSER_DUTIES_UPDATE_FREQ"},
+	}
 	// Proposing metadata related.
 	ExtraData = &cli.StringFlag{
 		Name:     "extraData",
@@ -150,6 +164,7 @@ var (
 
 // ProposerFlags All proposer flags.
 var ProposerFlags = MergeFlags(CommonFlags, []cli.Flag{
+	L1BeaconEndpoint,
 	L2HTTPEndpoint,
 	L2AuthEndpoint,
 	JWTSecret,
@@ -164,6 +179,8 @@ var ProposerFlags = MergeFlags(CommonFlags, []cli.Flag{
 	MinTxListBytes,
 	MinProposingInternal,
 	MaxProposedTxListsPerEpoch,
+	MaxProposerDutiesSlots,
+	ProposerDutiesUpdateFreq,
 	ProverEndpoints,
 	OptimisticTierFee,
 	SgxTierFee,
