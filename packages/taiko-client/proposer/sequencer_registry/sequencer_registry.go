@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"log"
 	"math/big"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joho/godotenv"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings"
@@ -32,11 +34,15 @@ type ISequencerRegistryValidatorProof struct {
 func loadEnv() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Error loading .env file")
+		log.Fatalf("Error loading .env file", err)
 	}
 }
 
-func register(ctx context.Context, client *rpc.EthClient, auth *bind.TransactOpts) error {
+func encodePacked(input ...[]byte) []byte {
+	return bytes.Join(input, nil)
+}
+
+func register(ctx context.Context, client *rpc.EthClient, auth *bind.TransactOpts, chainId *big.Int) error {
 	registryAddress := common.HexToAddress(os.Getenv("SEQUENCER_REGISTRY"))
 
 	registry, err := bindings.NewSequencerRegistry(registryAddress, client)
@@ -44,22 +50,39 @@ func register(ctx context.Context, client *rpc.EthClient, auth *bind.TransactOpt
 		log.Fatalf("Failed to instantiate a SequencerRegistry contract: %v", err)
 	}
 
-	proposerAddress := common.HexToAddress(os.Getenv("PROPOSER_ADDRESS"))
+	validatorAddress := common.HexToAddress(os.Getenv("VALIDATOR_ADDRESS"))
+	fnSelector := [4]byte{0xe6, 0xe9, 0x11, 0x57}
+	packed := encodePacked(
+		[]byte{0x1},
+		registryAddress.Bytes(),
+		math.U256Bytes(chainId),
+		math.U256Bytes(big.NewInt(0)), fnSelector[:], validatorAddress.Bytes(),
+		[]byte{},
+	)
+
+	authHash := crypto.Keccak256(packed)
+
+	if len(authHash) != 32 {
+		log.Fatalf("authHash length is not 32 bytes: got %d", len(authHash))
+	}
+
+	var authHashArray [32]byte
+	copy(authHashArray[:], authHash)
 
 	tx, err := registry.Register(
 		auth,
-		proposerAddress,
-		[]byte{},   // Placeholder
-		[32]byte{}, // Placeholder
-		[]byte{},   // Placeholder
+		validatorAddress,
+		[]byte{},
+		authHashArray,
+		[]byte{},
 		bindings.ISequencerRegistryValidatorProof{
-			CurrentEpoch:    0,             // Placeholder
-			ActivationEpoch: 0,             // Placeholder
-			ExitEpoch:       0,             // Placeholder
-			ValidatorIndex:  big.NewInt(0), // Placeholder
-			Slashed:         false,         // Placeholder
-			ProofSlot:       big.NewInt(0), // Placeholder
-			SszProof:        []byte{},      // Placeholder
+			CurrentEpoch:    0,
+			ActivationEpoch: 0,
+			ExitEpoch:       0,
+			ValidatorIndex:  big.NewInt(0),
+			Slashed:         false,
+			ProofSlot:       big.NewInt(0),
+			SszProof:        []byte{},
 		},
 	)
 
@@ -92,17 +115,20 @@ func activate(ctx context.Context, client *rpc.EthClient, auth *bind.TransactOpt
 
 	auth.Value = big.NewInt(1e18) // Staking 1 ETH
 
+	pubkey := make([]byte, 48)
+	pubkey[31] = 0x01
+
 	tx, err := registry.StakeSequencer(
 		auth,
-		make([]byte, 48), // publicKey
+		pubkey, // publicKey
 		bindings.ISequencerRegistryValidatorProof{
-			CurrentEpoch:    0,             // Placeholder
-			ActivationEpoch: 0,             // Placeholder
-			ExitEpoch:       0,             // Placeholder
-			ValidatorIndex:  big.NewInt(0), // Placeholder
-			Slashed:         false,         // Placeholder
-			ProofSlot:       big.NewInt(0), // Placeholder
-			SszProof:        []byte{},      // Placeholder
+			CurrentEpoch:    0,
+			ActivationEpoch: 0,
+			ExitEpoch:       0,
+			ValidatorIndex:  big.NewInt(0),
+			Slashed:         false,
+			ProofSlot:       big.NewInt(0),
+			SszProof:        []byte{},
 		},
 	)
 
@@ -166,7 +192,7 @@ func main() {
 
 	switch os.Args[1] {
 	case "register":
-		err := register(ctx, client, auth)
+		err := register(ctx, client, auth, chainIdInt)
 		if err != nil {
 			log.Fatalf("Failed to register sequencer: %v", err)
 			os.Exit(1)

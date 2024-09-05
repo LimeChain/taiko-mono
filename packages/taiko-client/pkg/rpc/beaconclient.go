@@ -202,7 +202,6 @@ func (c *BeaconClient) filterProposerDuties(duties []*ProposerDuty, headSlot uin
 	filteredDuties := make([]*ProposerDuty, 0)
 	for _, duty := range duties {
 		slot, err := strconv.Atoi(duty.Slot)
-		log.Trace("Filtering duty", "slot", slot, "headSlot", headSlot, "maxSlots", maxSlots)
 		if err != nil {
 			log.Error("Failed to convert slot to integer", "slot", duty.Slot, "error", err)
 			continue

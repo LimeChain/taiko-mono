@@ -15,6 +15,13 @@ var (
 		Category: proposerCategory,
 		EnvVars:  []string{"L1_PROPOSER_PRIV_KEY"},
 	}
+	L1MevBoostEndpoint = &cli.StringFlag{
+		Name:     "l1.mevBoost",
+		Usage:    "HTTP endpoint of a L1 mev-boost service",
+		Required: true,
+		Category: proposerCategory,
+		EnvVars:  []string{"L1_MEV_BOOST"},
+	}
 	ProverEndpoints = &cli.StringFlag{
 		Name:     "proverEndpoints",
 		Usage:    "Comma-delineated list of prover endpoints proposer should query when attempting to propose a block",
@@ -170,6 +177,7 @@ var ProposerFlags = MergeFlags(CommonFlags, []cli.Flag{
 	JWTSecret,
 	TaikoTokenAddress,
 	L1ProposerPrivKey,
+	L1MevBoostEndpoint,
 	L2SuggestedFeeRecipient,
 	ProposeInterval,
 	TxPoolLocals,

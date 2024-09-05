@@ -46,9 +46,11 @@ type Proposer struct {
 	proposerDutiesSlot atomic.Value
 	proposerDuties     []*rpc.ProposerDuty
 
+	validatorPublicKeyHex string
+	validatorAddress      common.Address
+
 	// Private keys and account addresses
-	proposerAddress     common.Address
-	proposerPubKeyBytes []byte
+	proposerAddress common.Address
 
 	proposingTimer *time.Timer
 
@@ -85,7 +87,6 @@ func (p *Proposer) InitFromCli(ctx context.Context, c *cli.Context) error {
 // InitFromConfig initializes the proposer instance based on the given configurations.
 func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) {
 	p.proposerAddress = crypto.PubkeyToAddress(cfg.L1ProposerPrivKey.PublicKey)
-	p.proposerPubKeyBytes = crypto.FromECDSAPub(&cfg.L1ProposerPrivKey.PublicKey)
 	p.ctx = ctx
 	p.Config = cfg
 	p.lastProposedAt = time.Now()
@@ -94,6 +95,12 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 	if p.rpc, err = rpc.NewClient(p.ctx, cfg.ClientConfig); err != nil {
 		return fmt.Errorf("initialize rpc clients error: %w", err)
 	}
+
+	if p.validatorPublicKeyHex, err = p.rpc.L1MevBoost.GetValidatorPubKeyHex(); err != nil {
+		return fmt.Errorf("failed to get validator pubkey hex error: %w", err)
+	}
+
+	p.validatorAddress = GetAddressFromBlsPublikKeyHex(p.validatorPublicKeyHex[2:])
 
 	// Protocol configs
 	protocolConfigs, err := p.rpc.TaikoL1.GetConfig(&bind.CallOpts{Context: ctx})
@@ -160,14 +167,23 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 		)
 	}
 
-	isEligibleSigner, err := p.rpc.SequencerRegistry.IsEligibleSigner(&bind.CallOpts{Context: ctx}, p.proposerAddress)
+	// TODO: Uncomment once BLS signatures are supported (after EIP-2573) in solidity
+	// pubKeyBytes, err := hex.DecodeString(p.validatorPublicKeyHex[2:])
+	// if err != nil {
+	// 	return fmt.Errorf("failed to decode validator public key: %w", err)
+	// }
+
+	// TODO: Remove once BLS signatures are supported (after EIP-2573) in solidity
+	pubKeyBytes := make([]byte, 48)
+	pubKeyBytes[31] = 0x01
+
+	isEligible, err := p.rpc.SequencerRegistry.IsEligible(&bind.CallOpts{Context: ctx}, pubKeyBytes)
 	if err != nil {
-		return fmt.Errorf("failed to get IsEligibleSignerr: %w", err)
+		return fmt.Errorf("failed to get is eligible error: %w", err)
 	}
 
-	if !isEligibleSigner {
-		log.Error("the sequencer is not eligible signer", "error", err)
-		return err
+	if !isEligible {
+		return fmt.Errorf("the validator is not eligible signer, pubkey: %s", p.validatorPublicKeyHex)
 	}
 
 	return nil
@@ -206,7 +222,7 @@ func (p *Proposer) subscribeL1() {
 	}
 }
 
-func (p *Proposer) syncL1ProposerSlots(ctx context.Context, l1Head *types.Header) error {
+func (p *Proposer) syncL1ProposerSlots(ctx context.Context, l1Head *types.Header) (err error) {
 	if l1Head == nil {
 		log.Warn("Empty new L1 head")
 		return nil
@@ -297,17 +313,17 @@ func (p *Proposer) updateProposerDuties(ctx context.Context, headSlot uint64, he
 }
 
 func (p *Proposer) handleDuty(ctx context.Context, duty *rpc.ProposerDuty, index int, headSlot uint64, height *big.Int) (*rpc.ProposerDuty, error) {
-	pubKeyBytes, err := hex.DecodeString(duty.PubKey)
-	if err != nil {
-		return duty, fmt.Errorf("failed to decode public key: %w", err)
-	}
+	if duty.PubKey != p.validatorPublicKeyHex {
+		log.Trace("Proposer duty's public key does not match with the proposer's public key", "slot", duty.Slot, "pubKey", duty.PubKey)
 
-	if !bytes.Equal(pubKeyBytes, p.proposerPubKeyBytes) {
-		log.Warn("Proposer duty's public key does not match with the proposer's public key")
+		pubKeyBytes, err := hex.DecodeString(duty.PubKey[2:])
+		if err != nil {
+			return duty, fmt.Errorf("failed to decode duty public key: %w", err)
+		}
 
 		isEligible, err := p.rpc.SequencerRegistry.IsEligible(&bind.CallOpts{Context: ctx}, pubKeyBytes)
 		if err != nil {
-			return duty, fmt.Errorf("failed to get IsEligibleSignerr: %w", err)
+			return duty, fmt.Errorf("failed to get is eligible: %w", err)
 		}
 
 		if !isEligible {
@@ -320,15 +336,16 @@ func (p *Proposer) handleDuty(ctx context.Context, duty *rpc.ProposerDuty, index
 
 			fallbackSigner, err := p.rpc.SequencerRegistry.FallbackSigner(&bind.CallOpts{Context: ctx}, blockNum)
 			if err != nil {
-				return duty, fmt.Errorf("failed to get IsEligibleSigner: %w", err)
+				return duty, fmt.Errorf("failed to get FallbackSigner: %w", err)
 			}
 
-			if fallbackSigner == p.proposerAddress {
-				log.Info("Fallback signer is the proposer")
-				duty.PubKey = hex.EncodeToString(p.proposerPubKeyBytes)
+			if fallbackSigner == p.validatorAddress {
+				log.Trace("Validator is the fallback signer", "slot", dutySlot, "fallbackSigner", fallbackSigner.Hex())
+				duty.PubKey = p.validatorPublicKeyHex
 			}
 		}
 	}
+
 	return duty, nil
 }
 

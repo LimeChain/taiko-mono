@@ -29,6 +29,17 @@ var (
 	_ = abi.ConvertType
 )
 
+// ISequencerRegistryValidatorProof is an auto generated low-level Go binding around an user-defined struct.
+type ISequencerRegistryValidatorProof struct {
+	CurrentEpoch    uint64
+	ActivationEpoch uint64
+	ExitEpoch       uint64
+	ValidatorIndex  *big.Int
+	Slashed         bool
+	ProofSlot       *big.Int
+	SszProof        []byte
+}
+
 // TaikoDataBlock is an auto generated low-level Go binding around an user-defined struct.
 type TaikoDataBlock struct {
 	MetaHash             [32]byte

@@ -20,6 +20,7 @@ const (
 type Client struct {
 	// Geth ethclient clients
 	L1           *EthClient
+	L1MevBoost   *MevBoostClient
 	L2           *EthClient
 	L2CheckPoint *EthClient
 	// Geth Engine API clients
@@ -41,6 +42,7 @@ type Client struct {
 // won't be initialized.
 type ClientConfig struct {
 	L1Endpoint                    string
+	L1MevBoostEndpoint            string
 	L2Endpoint                    string
 	L1BeaconEndpoint              string
 	L2CheckPoint                  string
@@ -61,6 +63,7 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 	var (
 		l1Client       *EthClient
 		l2Client       *EthClient
+		l1MevBoost     *MevBoostClient
 		l1BeaconClient *BeaconClient
 		l2CheckPoint   *EthClient
 		err            error
@@ -87,6 +90,10 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 				log.Error("Failed to connect to L1 beacon endpoint, retrying", "endpoint", cfg.L1BeaconEndpoint, "err", err)
 				return err
 			}
+		}
+
+		if cfg.L1MevBoostEndpoint != "" && os.Getenv("RUN_TESTS") == "" {
+			l1MevBoost = NewMevBoostClient(cfg.L1MevBoostEndpoint, cfg.Timeout)
 		}
 
 		if cfg.L2CheckPoint != "" {
@@ -161,6 +168,7 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 	client := &Client{
 		L1:                     l1Client,
 		L1Beacon:               l1BeaconClient,
+		L1MevBoost:             l1MevBoost,
 		L2:                     l2Client,
 		L2CheckPoint:           l2CheckPoint,
 		L2Engine:               l2AuthClient,
