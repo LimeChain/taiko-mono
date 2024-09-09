@@ -197,9 +197,8 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 
 // Start starts the proposer's main loop.
 func (p *Proposer) Start() error {
-	go p.syncL1ProposerDutiesOp()
-	go p.buildTxListOp()
-	go p.proposeBlockOp()
+	go p.syncL1()
+	go p.proposeBlock()
 	go p.eventLoop()
 	return nil
 }
@@ -209,7 +208,7 @@ func (p *Proposer) Close(_ context.Context) {
 	p.wg.Wait()
 }
 
-func (p *Proposer) syncL1ProposerDutiesOp() {
+func (p *Proposer) syncL1() {
 	p.wg.Add(1)
 
 	var (
@@ -235,7 +234,7 @@ func (p *Proposer) syncL1ProposerDutiesOp() {
 	}
 }
 
-func (p *Proposer) buildTxListOp() {
+func (p *Proposer) proposeBlock() {
 	p.wg.Add(1)
 
 	var (
@@ -253,6 +252,10 @@ func (p *Proposer) buildTxListOp() {
 		case <-p.ctx.Done():
 			return
 		case <-l1HeadFeedCh2:
+			time.Sleep(p.ProposeDelay * time.Second)
+
+			metrics.ProposerProposeEpochCounter.Add(1)
+
 			_, err := p.rpc.BuildTxList(
 				p.ctx,
 				p.proposerAddress,
@@ -266,34 +269,9 @@ func (p *Proposer) buildTxListOp() {
 				log.Error("Building tx list error", "error", err)
 				continue
 			}
-		}
-	}
-}
-
-func (p *Proposer) proposeBlockOp() {
-	p.wg.Add(1)
-
-	var (
-		l1HeadFeedCh3  = make(chan *types.Header, 10)
-		l1HeadFeedSub3 = p.l1HeadFeed.Subscribe(l1HeadFeedCh3)
-	)
-
-	defer func() {
-		l1HeadFeedSub3.Unsubscribe()
-		p.wg.Done()
-	}()
-
-	for {
-		select {
-		case <-p.ctx.Done():
-			return
-		case <-l1HeadFeedCh3:
-			time.Sleep(p.ProposeDelay * time.Second)
-
-			metrics.ProposerProposeEpochCounter.Add(1)
 
 			// Attempt a proposing operation
-			if err := p.ProposeBlock(p.ctx); err != nil {
+			if err := p.ProposeOp(p.ctx); err != nil {
 				log.Error("Proposing operation error", "error", err)
 				continue
 			}
@@ -564,10 +542,10 @@ func (p *Proposer) isEligibleValidatorForNextSlot() bool {
 	return nextDuty.PubKey == p.validatorPublicKeyHex
 }
 
-// ProposeBlock performs a proposing operation, fetching transactions
+// ProposeOp performs a proposing operation, fetching transactions
 // from L2 execution engine's tx pool, splitting them by proposing constraints,
 // and then proposing them to TaikoL1 contract.
-func (p *Proposer) ProposeBlock(ctx context.Context) error {
+func (p *Proposer) ProposeOp(ctx context.Context) error {
 	log.Info(
 		"Start fetching L2 execution engine's transaction pool content",
 		"lastProposedAt", p.lastProposedAt,

@@ -132,7 +132,7 @@ func (s *ClientTestSuite) ProposeAndInsertValidBlock(
 	s.Nil(err)
 	s.Nil(s.RPCClient.L2.SendTransaction(context.Background(), signedTx))
 
-	s.Nil(proposer.ProposeBlock(context.Background()))
+	s.Nil(proposer.ProposeOp(context.Background()))
 
 	event := <-sink
 
@@ -200,7 +200,7 @@ func (s *ClientTestSuite) ProposeValidBlock(
 	s.Nil(err)
 	s.Nil(s.RPCClient.L2.SendTransaction(context.Background(), signedTx))
 
-	s.Nil(proposer.ProposeBlock(context.Background()))
+	s.Nil(proposer.ProposeOp(context.Background()))
 
 	event := <-sink
 

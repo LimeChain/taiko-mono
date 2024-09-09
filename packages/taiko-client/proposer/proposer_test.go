@@ -206,7 +206,7 @@ func (s *ProposerTestSuite) TestProposeOpNoEmptyBlock() {
 	p.MinGasUsed = blockMinGasLimit
 	p.MinTxListBytes = blockMinTxListBytes
 	p.ProposeDelay = time.Second
-	s.Nil(p.ProposeBlock(context.Background()))
+	s.Nil(p.ProposeOp(context.Background()))
 }
 
 func (s *ProposerTestSuite) TestName() {
@@ -228,7 +228,7 @@ func (s *ProposerTestSuite) TestProposeOp() {
 	_, err = testutils.SendDynamicFeeTx(s.p.rpc.L2, s.TestAddrPrivKey, &to, common.Big1, nil)
 	s.Nil(err)
 
-	s.Nil(s.p.ProposeBlock(context.Background()))
+	s.Nil(s.p.ProposeOp(context.Background()))
 
 	event := <-sink
 
@@ -245,7 +245,7 @@ func (s *ProposerTestSuite) TestProposeOp() {
 
 func (s *ProposerTestSuite) TestProposeEmptyBlockOp() {
 	s.p.lastProposedAt = time.Now().Add(-10 * time.Second)
-	s.Nil(s.p.ProposeBlock(context.Background()))
+	s.Nil(s.p.ProposeOp(context.Background()))
 }
 
 func (s *ProposerTestSuite) TestAssignProverSuccessFirstRound() {
