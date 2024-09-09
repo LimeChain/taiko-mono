@@ -3,10 +3,10 @@ package proposer
 import (
 	"bytes"
 	"context"
+
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -17,7 +17,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
+
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
@@ -41,7 +43,8 @@ type Proposer struct {
 	rpc *rpc.Client
 
 	// Current L1 slot
-	headSlot atomic.Value
+	l1HeadSlot atomic.Value
+	l1HeadFeed event.Feed
 
 	proposerDutiesSlot atomic.Value
 	proposerDuties     []*rpc.ProposerDuty
@@ -51,8 +54,6 @@ type Proposer struct {
 
 	// Private keys and account addresses
 	proposerAddress common.Address
-
-	proposingTimer *time.Timer
 
 	tiers    []*rpc.TierProviderTierWithID
 	tierFees []encoding.TierFee
@@ -186,19 +187,127 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 		return fmt.Errorf("the validator is not eligible signer, pubkey: %s", p.validatorPublicKeyHex)
 	}
 
+	// Wait until L2 execution engine is synced at first.
+	if err := p.rpc.WaitTillL2ExecutionEngineSynced(ctx); err != nil {
+		return fmt.Errorf("failed to wait until L2 execution engine synced: %w", err)
+	}
+
 	return nil
 }
 
 // Start starts the proposer's main loop.
 func (p *Proposer) Start() error {
-	p.wg.Add(3)
-	go p.subscribeL1()
-	go p.buildTxList()
+	go p.syncL1ProposerDutiesOp()
+	go p.buildTxListOp()
+	go p.proposeBlockOp()
 	go p.eventLoop()
 	return nil
 }
 
-func (p *Proposer) subscribeL1() {
+// Close closes the proposer instance.
+func (p *Proposer) Close(_ context.Context) {
+	p.wg.Wait()
+}
+
+func (p *Proposer) syncL1ProposerDutiesOp() {
+	p.wg.Add(1)
+
+	var (
+		l1HeadFeedCh1  = make(chan *types.Header, 10)
+		l1HeadFeedSub1 = p.l1HeadFeed.Subscribe(l1HeadFeedCh1)
+	)
+
+	defer func() {
+		l1HeadFeedSub1.Unsubscribe()
+		p.wg.Done()
+	}()
+
+	for {
+		select {
+		case <-p.ctx.Done():
+			return
+		case l1Head := <-l1HeadFeedCh1:
+			if err := p.syncL1ProposerDuties(p.ctx, l1Head); err != nil {
+				log.Error("Sync L1 proposer slots operation error", "error", err)
+				continue
+			}
+		}
+	}
+}
+
+func (p *Proposer) buildTxListOp() {
+	p.wg.Add(1)
+
+	var (
+		l1HeadFeedCh2  = make(chan *types.Header, 10)
+		l1HeadFeedSub2 = p.l1HeadFeed.Subscribe(l1HeadFeedCh2)
+	)
+
+	defer func() {
+		l1HeadFeedSub2.Unsubscribe()
+		p.wg.Done()
+	}()
+
+	for {
+		select {
+		case <-p.ctx.Done():
+			return
+		case <-l1HeadFeedCh2:
+			log.Info("L1 head updated, start building tx list")
+
+			_, err := p.rpc.BuildTxList(
+				p.ctx,
+				p.proposerAddress,
+				p.protocolConfigs.BlockMaxGasLimit,
+				rpc.BlockMaxTxListBytes,
+				p.LocalAddresses,
+				p.MaxProposedTxListsPerEpoch,
+			)
+
+			if err != nil {
+				log.Error("Building tx list error", "error", err)
+				continue
+			}
+		}
+	}
+}
+
+func (p *Proposer) proposeBlockOp() {
+	p.wg.Add(1)
+
+	var (
+		l1HeadFeedCh3  = make(chan *types.Header, 10)
+		l1HeadFeedSub3 = p.l1HeadFeed.Subscribe(l1HeadFeedCh3)
+	)
+
+	defer func() {
+		l1HeadFeedSub3.Unsubscribe()
+		p.wg.Done()
+	}()
+
+	for {
+		select {
+		case <-p.ctx.Done():
+			return
+		case <-l1HeadFeedCh3:
+			time.Sleep(p.ProposeDelay * time.Second)
+
+			log.Info("Proposing time has been reached")
+			metrics.ProposerProposeEpochCounter.Add(1)
+
+			// Attempt a proposing operation
+			if err := p.ProposeBlock(p.ctx); err != nil {
+				log.Error("Proposing operation error", "error", err)
+				continue
+			}
+		}
+	}
+}
+
+// eventLoop starts the main loop of Taiko proposer.
+func (p *Proposer) eventLoop() {
+	p.wg.Add(1)
+
 	var (
 		l1HeadCh  = make(chan *types.Header, 10)
 		l1HeadSub = rpc.SubscribeChainHead(p.rpc.L1, l1HeadCh)
@@ -213,60 +322,80 @@ func (p *Proposer) subscribeL1() {
 		select {
 		case <-p.ctx.Done():
 			return
-		case newHead := <-l1HeadCh:
-			if err := p.syncL1ProposerSlots(p.ctx, newHead); err != nil {
-				log.Error("Sync L1 proposer slots operation error", "error", err)
+		case l1Head := <-l1HeadCh:
+			if err := p.setL1HeadSlot(p.ctx, l1Head); err != nil {
+				log.Error("Set L1 current slot operation error", "error", err)
 				continue
 			}
+			p.l1HeadFeed.Send(l1Head)
 		}
 	}
 }
 
-func (p *Proposer) syncL1ProposerSlots(ctx context.Context, l1Head *types.Header) (err error) {
+// setL1HeadSlot sets the L1 current slot concurrent safely.
+func (p *Proposer) setL1HeadSlot(ctx context.Context, l1Head *types.Header) error {
 	if l1Head == nil {
 		log.Warn("Empty new L1 head")
 		return nil
 	}
 
-	// Wait until L1 execution engine is synced at first.
-	progress, err := p.rpc.L1.SyncProgress(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to wait until L1 execution engine synced: %w", err)
-	}
-
-	if progress != nil {
-		log.Warn("L1 execution engine is not synced yet")
+	if l1Head == nil {
+		log.Warn("Empty new L1 head")
 		return nil
 	}
 
-	headSlot, err := p.rpc.L1Beacon.GetHeadSlot(ctx)
+	l1HeadSlot, err := p.rpc.L1Beacon.GetHeadSlot(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get current slot: %w", err)
 	}
 
-	prevHeadSlot := p.headSlot.Swap(*headSlot)
+	prevL1HeadSlot := p.l1HeadSlot.Swap(l1HeadSlot)
 
-	if prevHeadSlot == *headSlot {
-		log.Info("L1 proposer slots are already synced", "headSlot", *headSlot)
+	if prevL1HeadSlot == *l1HeadSlot {
+		log.Info("L1 proposer slots are already synced", "headSlot", *l1HeadSlot)
 		return nil
 	}
 
-	log.Info(
-		"Start synching L1 proposer slots",
-		"height", l1Head.Number,
-		"headSlot", p.headSlot,
-	)
+	log.Info("L1 head slot updated", "headSlot", *l1HeadSlot)
 
-	if p.shouldUpdateDuties(*headSlot) {
-		if err := p.updateProposerDuties(p.ctx, *headSlot, l1Head.Number); err != nil {
+	return nil
+}
+
+func (p *Proposer) syncL1ProposerDuties(ctx context.Context, l1Head *types.Header) (err error) {
+	l1HeadSlot := p.l1HeadSlot.Load().(*uint64)
+
+	if l1HeadSlot == nil {
+		log.Warn("Empty L1 head slot")
+		return nil
+	}
+
+	if p.shouldUpdateDuties(*l1HeadSlot) {
+		log.Info(
+			"Start synching L1 proposer duties",
+			"height", l1Head.Number,
+			"headSlot", l1HeadSlot,
+		)
+
+		if err := p.updateProposerDuties(p.ctx, *l1HeadSlot, l1Head.Number); err != nil {
 			return fmt.Errorf("failed to update proposer duties: %w", err)
 		}
 	}
 
-	p.proposerDutiesSlot.Store(headSlot)
+	p.proposerDutiesSlot.Store(l1HeadSlot)
 
 	return nil
 }
+
+func (p *Proposer) shouldUpdateDuties(headSlot uint64) bool {
+	proposerDutiesSlot := p.proposerDutiesSlot.Load()
+	if proposerDutiesSlot == nil {
+		return true
+	}
+	lastProposerDutyDistance := headSlot - *proposerDutiesSlot.(*uint64)
+	return headSlot%p.ProposerDutiesUpdateFreq == 0 ||
+		lastProposerDutyDistance >= p.ProposerDutiesUpdateFreq
+}
+
 func (p *Proposer) updateProposerDuties(ctx context.Context, headSlot uint64, height *big.Int) error {
 	proposerDuties, err := p.rpc.L1Beacon.GetNextProposerDuties(ctx, headSlot, p.MaxProposerDutiesSlots)
 	if err != nil {
@@ -349,75 +478,8 @@ func (p *Proposer) handleDuty(ctx context.Context, duty *rpc.ProposerDuty, index
 	return duty, nil
 }
 
-func (p *Proposer) shouldUpdateDuties(headSlot uint64) bool {
-	proposerDutiesSlot := p.proposerDutiesSlot.Load()
-	if proposerDutiesSlot == nil {
-		return true
-	}
-	lastProposerDutyDistance := headSlot - *proposerDutiesSlot.(*uint64)
-	return headSlot%p.ProposerDutiesUpdateFreq == 0 ||
-		lastProposerDutyDistance >= p.ProposerDutiesUpdateFreq
-}
-
-func (p *Proposer) buildTxList() {
-	defer p.wg.Done()
-
-	for {
-		select {
-		case <-p.ctx.Done():
-			return
-		default:
-			time.Sleep(5 * time.Second)
-
-			_, err := p.rpc.BuildTxList(
-				p.ctx,
-				p.proposerAddress,
-				p.protocolConfigs.BlockMaxGasLimit,
-				rpc.BlockMaxTxListBytes,
-				p.LocalAddresses,
-				p.MaxProposedTxListsPerEpoch,
-			)
-			if err != nil {
-				log.Error("Building tx list error", "error", err)
-				continue
-			}
-		}
-	}
-}
-
-// eventLoop starts the main loop of Taiko proposer.
-func (p *Proposer) eventLoop() {
-	defer func() {
-		p.proposingTimer.Stop()
-		p.wg.Done()
-	}()
-
-	for {
-		p.updateProposingTicker()
-
-		select {
-		case <-p.ctx.Done():
-			return
-		// proposing interval timer has been reached
-		case <-p.proposingTimer.C:
-			metrics.ProposerProposeEpochCounter.Add(1)
-
-			// Attempt a proposing operation
-			if err := p.ProposeOp(p.ctx); err != nil {
-				log.Error("Proposing operation error", "error", err)
-				continue
-			}
-		}
-	}
-}
-
-// Close closes the proposer instance.
-func (p *Proposer) Close(_ context.Context) {
-	p.wg.Wait()
-}
-
 // fetchTxListToPropose fetches prebuilt list of transactions from L2 execution engine.
-func (p *Proposer) fetchTxListToPropose(filterPoolContent bool) ([]types.Transactions, error) {
+func (p *Proposer) fetchTxListToPropose() ([]types.Transactions, error) {
 	preBuiltTxLists, err := p.rpc.FetchTxList(p.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch transaction pool content: %w", err)
@@ -426,7 +488,7 @@ func (p *Proposer) fetchTxListToPropose(filterPoolContent bool) ([]types.Transac
 	txLists := []types.Transactions{}
 	for i, prebuiltTxList := range preBuiltTxLists {
 		// Filter the pool content if the filterPoolContent flag is set.
-		if prebuiltTxList.EstimatedGasUsed < p.MinGasUsed && prebuiltTxList.BytesLength < p.MinTxListBytes && filterPoolContent {
+		if prebuiltTxList.EstimatedGasUsed < p.MinGasUsed && prebuiltTxList.BytesLength < p.MinTxListBytes {
 			log.Info(
 				"Pool content skipped",
 				"index", i,
@@ -440,11 +502,10 @@ func (p *Proposer) fetchTxListToPropose(filterPoolContent bool) ([]types.Transac
 		txLists = append(txLists, prebuiltTxList.TxList)
 	}
 	// If the pool content is empty and the checkPoolContent flag is not set, return an empty list.
-	if !filterPoolContent && len(txLists) == 0 {
+	if len(txLists) == 0 {
 		log.Info(
 			"Pool content is empty, proposing an empty block",
 			"lastProposedAt", p.lastProposedAt,
-			"minProposingInternal", p.MinProposingInternal,
 		)
 		txLists = append(txLists, types.Transactions{})
 	}
@@ -482,25 +543,43 @@ func (p *Proposer) fetchTxListToPropose(filterPoolContent bool) ([]types.Transac
 	return txLists, nil
 }
 
-// ProposeOp performs a proposing operation, fetching transactions
-// from L2 execution engine's tx pool, splitting them by proposing constraints,
-// and then proposing them to TaikoL1 contract.
-func (p *Proposer) ProposeOp(ctx context.Context) error {
-	// Check if it's time to propose unfiltered pool content.
-	filterPoolContent := time.Now().Before(p.lastProposedAt.Add(p.MinProposingInternal))
+func (p *Proposer) isEligibleValidatorForNextSlot() bool {
+	l1HeadSlot := p.l1HeadSlot.Load().(*uint64)
 
-	// Wait until L2 execution engine is synced at first.
-	if err := p.rpc.WaitTillL2ExecutionEngineSynced(ctx); err != nil {
-		return fmt.Errorf("failed to wait until L2 execution engine synced: %w", err)
+	if l1HeadSlot == nil {
+		log.Warn("Empty L1 head slot")
+		return false
 	}
 
+	nextSlot := strconv.FormatUint(*l1HeadSlot+1, 10)
+
+	var nextDuty *rpc.ProposerDuty
+
+	for _, duty := range p.proposerDuties {
+		if duty.Slot == nextSlot {
+			nextDuty = duty
+			break
+		}
+	}
+
+	if nextDuty == nil {
+		log.Warn("Empty next proposer duty")
+		return false
+	}
+
+	return nextDuty.PubKey == p.validatorPublicKeyHex
+}
+
+// ProposeBlock performs a proposing operation, fetching transactions
+// from L2 execution engine's tx pool, splitting them by proposing constraints,
+// and then proposing them to TaikoL1 contract.
+func (p *Proposer) ProposeBlock(ctx context.Context) error {
 	log.Info(
 		"Start fetching L2 execution engine's transaction pool content",
-		"filterPoolContent", filterPoolContent,
 		"lastProposedAt", p.lastProposedAt,
 	)
 
-	txLists, err := p.fetchTxListToPropose(filterPoolContent)
+	txLists, err := p.fetchTxListToPropose()
 	if err != nil {
 		return err
 	}
@@ -523,21 +602,30 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 
 		log.Info("Proposer current pending nonce", "nonce", nonce)
 
-		g.Go(func() error {
-			txListBytes, err := rlp.EncodeToBytes(txs)
-			if err != nil {
-				return fmt.Errorf("failed to encode transactions: %w", err)
-			}
+		if p.isEligibleValidatorForNextSlot() {
+			l1HeadSlot := p.l1HeadSlot.Load().(*uint64)
+			nextSlot := *l1HeadSlot + 1
 
-			if err := p.ProposeTxList(gCtx, txListBytes, uint(txs.Len())); err != nil {
-				return err
+			if err = p.rpc.L1MevBoost.SetConstraints(nextSlot, txs); err != nil {
+				return fmt.Errorf("failed to set validator mev boost constraints: %w", err)
 			}
-			p.lastProposedAt = time.Now()
-			return nil
-		})
+		} else {
+			g.Go(func() error {
+				txListBytes, err := rlp.EncodeToBytes(txs)
+				if err != nil {
+					return fmt.Errorf("failed to encode transactions: %w", err)
+				}
 
-		if err := p.rpc.WaitL1NewPendingTransaction(ctx, p.proposerAddress, nonce); err != nil {
-			log.Error("Failed to wait for new pending transaction", "error", err)
+				if err := p.ProposeTxList(gCtx, txListBytes, uint(txs.Len())); err != nil {
+					return err
+				}
+				p.lastProposedAt = time.Now()
+				return nil
+			})
+
+			if err := p.rpc.WaitL1NewPendingTransaction(ctx, p.proposerAddress, nonce); err != nil {
+				log.Error("Failed to wait for new pending transaction", "error", err)
+			}
 		}
 	}
 	if err := g.Wait(); err != nil {
@@ -585,24 +673,6 @@ func (p *Proposer) ProposeTxList(
 	metrics.ProposerProposedTxsCounter.Add(float64(txNum))
 
 	return nil
-}
-
-// updateProposingTicker updates the internal proposing timer.
-func (p *Proposer) updateProposingTicker() {
-	if p.proposingTimer != nil {
-		p.proposingTimer.Stop()
-	}
-
-	var duration time.Duration
-	if p.ProposeInterval != 0 {
-		duration = p.ProposeInterval
-	} else {
-		// Random number between 12 - 120
-		randomSeconds := rand.Intn(120-11) + 12 // nolint: gosec
-		duration = time.Duration(randomSeconds) * time.Second
-	}
-
-	p.proposingTimer = time.NewTimer(duration)
 }
 
 // Name returns the application name.

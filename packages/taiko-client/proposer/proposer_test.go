@@ -76,8 +76,7 @@ func (s *ProposerTestSuite) SetupTest() {
 		},
 		L1ProposerPrivKey:          l1ProposerPrivKey,
 		L2SuggestedFeeRecipient:    common.HexToAddress(os.Getenv("L2_SUGGESTED_FEE_RECIPIENT")),
-		MinProposingInternal:       0,
-		ProposeInterval:            1024 * time.Hour,
+		ProposeDelay:               1024 * time.Hour,
 		MaxProposedTxListsPerEpoch: 1,
 		ProverEndpoints:            s.ProverEndpoints,
 		OptimisticTierFee:          common.Big256,
@@ -206,9 +205,8 @@ func (s *ProposerTestSuite) TestProposeOpNoEmptyBlock() {
 	p.LocalAddressesOnly = false
 	p.MinGasUsed = blockMinGasLimit
 	p.MinTxListBytes = blockMinTxListBytes
-	p.ProposeInterval = time.Second
-	p.MinProposingInternal = time.Minute
-	s.Nil(p.ProposeOp(context.Background()))
+	p.ProposeDelay = time.Second
+	s.Nil(p.ProposeBlock(context.Background()))
 }
 
 func (s *ProposerTestSuite) TestName() {
@@ -230,7 +228,7 @@ func (s *ProposerTestSuite) TestProposeOp() {
 	_, err = testutils.SendDynamicFeeTx(s.p.rpc.L2, s.TestAddrPrivKey, &to, common.Big1, nil)
 	s.Nil(err)
 
-	s.Nil(s.p.ProposeOp(context.Background()))
+	s.Nil(s.p.ProposeBlock(context.Background()))
 
 	event := <-sink
 
@@ -246,9 +244,8 @@ func (s *ProposerTestSuite) TestProposeOp() {
 }
 
 func (s *ProposerTestSuite) TestProposeEmptyBlockOp() {
-	s.p.MinProposingInternal = 1 * time.Second
 	s.p.lastProposedAt = time.Now().Add(-10 * time.Second)
-	s.Nil(s.p.ProposeOp(context.Background()))
+	s.Nil(s.p.ProposeBlock(context.Background()))
 }
 
 func (s *ProposerTestSuite) TestAssignProverSuccessFirstRound() {
@@ -259,14 +256,6 @@ func (s *ProposerTestSuite) TestAssignProverSuccessFirstRound() {
 
 	s.Nil(err)
 	s.Equal(fee.Uint64(), s.p.OptimisticTierFee.Uint64())
-}
-
-func (s *ProposerTestSuite) TestUpdateProposingTicker() {
-	s.p.ProposeInterval = 1 * time.Hour
-	s.NotPanics(s.p.updateProposingTicker)
-
-	s.p.ProposeInterval = 0
-	s.NotPanics(s.p.updateProposingTicker)
 }
 
 func (s *ProposerTestSuite) TestStartClose() {

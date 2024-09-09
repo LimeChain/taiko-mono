@@ -75,12 +75,12 @@ var (
 		EnvVars:  []string{"TIER_FEE_MAX_PRICE_BUMPS"},
 	}
 	// Proposing epoch related.
-	ProposeInterval = &cli.DurationFlag{
-		Name:     "epoch.interval",
-		Usage:    "Time interval to propose L2 pending transactions",
+	ProposeDelay = &cli.DurationFlag{
+		Name:     "epoch.delay",
+		Usage:    "Time delay to propose L2 pending transactions in seconds",
 		Category: proposerCategory,
-		Value:    0,
-		EnvVars:  []string{"EPOCH_INTERVAL"},
+		Value:    8,
+		EnvVars:  []string{"EPOCH_DELAY"},
 	}
 	MinGasUsed = &cli.Uint64Flag{
 		Name:     "epoch.minGasUsed",
@@ -95,13 +95,6 @@ var (
 		Category: proposerCategory,
 		Value:    0,
 		EnvVars:  []string{"EPOCH_MIN_TX_LIST_BYTES"},
-	}
-	MinProposingInternal = &cli.DurationFlag{
-		Name:     "epoch.minProposingInterval",
-		Usage:    "Minimum time interval to force proposing a block, even if there are no transaction in mempool",
-		Category: proposerCategory,
-		Value:    0,
-		EnvVars:  []string{"EPOCH_MIN_PROPOSING_INTERNAL"},
 	}
 	MaxProposerDutiesSlots = &cli.Uint64Flag{
 		Name:     "epoch.maxProposerDutiesSlots",
@@ -179,13 +172,12 @@ var ProposerFlags = MergeFlags(CommonFlags, []cli.Flag{
 	L1ProposerPrivKey,
 	L1MevBoostEndpoint,
 	L2SuggestedFeeRecipient,
-	ProposeInterval,
+	ProposeDelay,
 	TxPoolLocals,
 	TxPoolLocalsOnly,
 	ExtraData,
 	MinGasUsed,
 	MinTxListBytes,
-	MinProposingInternal,
 	MaxProposedTxListsPerEpoch,
 	MaxProposerDutiesSlots,
 	ProposerDutiesUpdateFreq,

@@ -93,7 +93,11 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 		}
 
 		if cfg.L1MevBoostEndpoint != "" && os.Getenv("RUN_TESTS") == "" {
-			l1MevBoost = NewMevBoostClient(cfg.L1MevBoostEndpoint, cfg.Timeout)
+			l1MevBoost, err = NewMevBoostClient(cfg.L1MevBoostEndpoint, cfg.Timeout)
+			if err != nil {
+				log.Error("Failed to connect to L1 MEV boost endpoint, retrying", "endpoint", cfg.L1MevBoostEndpoint, "err", err)
+				return err
+			}
 		}
 
 		if cfg.L2CheckPoint != "" {

@@ -27,12 +27,11 @@ type Config struct {
 	L1ProposerPrivKey          *ecdsa.PrivateKey
 	L2SuggestedFeeRecipient    common.Address
 	ExtraData                  string
-	ProposeInterval            time.Duration
+	ProposeDelay               time.Duration
 	LocalAddresses             []common.Address
 	LocalAddressesOnly         bool
 	MinGasUsed                 uint64
 	MinTxListBytes             uint64
-	MinProposingInternal       time.Duration
 	MaxProposedTxListsPerEpoch uint64
 	ProposeBlockTxGasLimit     uint64
 	ProverEndpoints            []*url.URL
@@ -113,12 +112,11 @@ func NewConfigFromCliContext(c *cli.Context) (*Config, error) {
 		L1ProposerPrivKey:          l1ProposerPrivKey,
 		L2SuggestedFeeRecipient:    common.HexToAddress(l2SuggestedFeeRecipient),
 		ExtraData:                  c.String(flags.ExtraData.Name),
-		ProposeInterval:            c.Duration(flags.ProposeInterval.Name),
+		ProposeDelay:               c.Duration(flags.ProposeDelay.Name),
 		LocalAddresses:             localAddresses,
 		LocalAddressesOnly:         c.Bool(flags.TxPoolLocalsOnly.Name),
 		MinGasUsed:                 c.Uint64(flags.MinGasUsed.Name),
 		MinTxListBytes:             c.Uint64(flags.MinTxListBytes.Name),
-		MinProposingInternal:       c.Duration(flags.MinProposingInternal.Name),
 		MaxProposedTxListsPerEpoch: c.Uint64(flags.MaxProposedTxListsPerEpoch.Name),
 		ProposeBlockTxGasLimit:     c.Uint64(flags.TxGasLimit.Name),
 		ProverEndpoints:            proverEndpoints,
