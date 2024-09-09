@@ -253,8 +253,6 @@ func (p *Proposer) buildTxListOp() {
 		case <-p.ctx.Done():
 			return
 		case <-l1HeadFeedCh2:
-			log.Info("L1 head updated, start building tx list")
-
 			_, err := p.rpc.BuildTxList(
 				p.ctx,
 				p.proposerAddress,
@@ -292,7 +290,6 @@ func (p *Proposer) proposeBlockOp() {
 		case <-l1HeadFeedCh3:
 			time.Sleep(p.ProposeDelay * time.Second)
 
-			log.Info("Proposing time has been reached")
 			metrics.ProposerProposeEpochCounter.Add(1)
 
 			// Attempt a proposing operation
@@ -356,7 +353,7 @@ func (p *Proposer) setL1HeadSlot(ctx context.Context, l1Head *types.Header) erro
 		return nil
 	}
 
-	log.Info("L1 head slot updated", "headSlot", *l1HeadSlot)
+	log.Info("L1 head slot updated", "headSlot", *l1HeadSlot, "height", l1Head.Number)
 
 	return nil
 }
@@ -443,7 +440,7 @@ func (p *Proposer) updateProposerDuties(ctx context.Context, headSlot uint64, he
 
 func (p *Proposer) handleDuty(ctx context.Context, duty *rpc.ProposerDuty, index int, headSlot uint64, height *big.Int) (*rpc.ProposerDuty, error) {
 	if duty.PubKey != p.validatorPublicKeyHex {
-		log.Trace("Proposer duty's public key does not match with the proposer's public key", "slot", duty.Slot, "pubKey", duty.PubKey)
+		log.Debug("Proposer duty's public key does not match with the proposer's public key", "slot", duty.Slot, "pubKey", duty.PubKey)
 
 		pubKeyBytes, err := hex.DecodeString(duty.PubKey[2:])
 		if err != nil {
@@ -469,7 +466,7 @@ func (p *Proposer) handleDuty(ctx context.Context, duty *rpc.ProposerDuty, index
 			}
 
 			if fallbackSigner == p.validatorAddress {
-				log.Trace("Validator is the fallback signer", "slot", dutySlot, "fallbackSigner", fallbackSigner.Hex())
+				log.Debug("Validator is the fallback signer", "slot", dutySlot, "fallbackSigner", fallbackSigner.Hex())
 				duty.PubKey = p.validatorPublicKeyHex
 			}
 		}
@@ -624,9 +621,6 @@ func (p *Proposer) ProposeBlock(ctx context.Context) error {
 			p.lastProposedAt = time.Now()
 			return nil
 		})
-	}
-	if err := g.Wait(); err != nil {
-		return err
 	}
 
 	return nil
