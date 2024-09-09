@@ -602,15 +602,15 @@ func (p *Proposer) ProposeBlock(ctx context.Context) error {
 
 		log.Info("Proposer current pending nonce", "nonce", nonce)
 
-		if p.isEligibleValidatorForNextSlot() {
-			l1HeadSlot := p.l1HeadSlot.Load().(*uint64)
-			nextSlot := *l1HeadSlot + 1
+		g.Go(func() error {
+			if p.isEligibleValidatorForNextSlot() {
+				l1HeadSlot := p.l1HeadSlot.Load().(*uint64)
+				nextSlot := *l1HeadSlot + 1
 
-			if err = p.rpc.L1MevBoost.SetConstraints(nextSlot, txs); err != nil {
-				return fmt.Errorf("failed to set validator mev boost constraints: %w", err)
-			}
-		} else {
-			g.Go(func() error {
+				if err = p.rpc.L1MevBoost.SetConstraints(nextSlot, txs); err != nil {
+					return fmt.Errorf("failed to set validator mev boost constraints: %w", err)
+				}
+			} else {
 				txListBytes, err := rlp.EncodeToBytes(txs)
 				if err != nil {
 					return fmt.Errorf("failed to encode transactions: %w", err)
@@ -619,14 +619,11 @@ func (p *Proposer) ProposeBlock(ctx context.Context) error {
 				if err := p.ProposeTxList(gCtx, txListBytes, uint(txs.Len())); err != nil {
 					return err
 				}
-				p.lastProposedAt = time.Now()
-				return nil
-			})
-
-			if err := p.rpc.WaitL1NewPendingTransaction(ctx, p.proposerAddress, nonce); err != nil {
-				log.Error("Failed to wait for new pending transaction", "error", err)
 			}
-		}
+
+			p.lastProposedAt = time.Now()
+			return nil
+		})
 	}
 	if err := g.Wait(); err != nil {
 		return err
