@@ -440,8 +440,6 @@ func (p *Proposer) updateProposerDuties(ctx context.Context, headSlot uint64, he
 
 func (p *Proposer) handleDuty(ctx context.Context, duty *rpc.ProposerDuty, index int, headSlot uint64, height *big.Int) (*rpc.ProposerDuty, error) {
 	if duty.PubKey != p.validatorPublicKeyHex {
-		log.Debug("Proposer duty's public key does not match with the proposer's public key", "slot", duty.Slot, "pubKey", duty.PubKey)
-
 		pubKeyBytes, err := hex.DecodeString(duty.PubKey[2:])
 		if err != nil {
 			return duty, fmt.Errorf("failed to decode duty public key: %w", err)
@@ -466,7 +464,6 @@ func (p *Proposer) handleDuty(ctx context.Context, duty *rpc.ProposerDuty, index
 			}
 
 			if fallbackSigner == p.validatorAddress {
-				log.Debug("Validator is the fallback signer", "slot", dutySlot, "fallbackSigner", fallbackSigner.Hex())
 				duty.PubKey = p.validatorPublicKeyHex
 			}
 		}
@@ -621,6 +618,9 @@ func (p *Proposer) ProposeBlock(ctx context.Context) error {
 			p.lastProposedAt = time.Now()
 			return nil
 		})
+	}
+	if err := g.Wait(); err != nil {
+		return err
 	}
 
 	return nil
