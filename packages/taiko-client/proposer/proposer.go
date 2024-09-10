@@ -164,62 +164,28 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 // Start starts the proposer's main loop.
 func (p *Proposer) Start() error {
 	p.wg.Add(2)
-	go p.eventLoop()
+	// go p.eventLoop()
+
+	// CHANGE(limechain)
 	go p.triggerOnNewEpochStart()
+	go p.triggerAfterNewSlotStart()
 	return nil
 }
 
-// CHANGE(limechain)
-
 var (
-	epochLength  = uint64(32) // number of slots per epoch
-	slotDuration = uint64(12) // duration of each slot in seconds
+	epochLength  = 32 // number of slots per epoch
+	slotDuration = 12 // duration of each slot in seconds
 )
 
-func (p *Proposer) currentSlotAndEpoch(genesisTimestamp uint64, now int64) (uint64, uint64) {
+func currentSlotAndEpoch(genesisTimestamp uint64, now int64) (uint64, uint64) {
 	elapsedTime := uint64(now) - genesisTimestamp
-	currentSlot := uint64(elapsedTime) / slotDuration
-	currentEpoch := currentSlot / epochLength
+	currentSlot := uint64(elapsedTime) / uint64(slotDuration)
+	currentEpoch := currentSlot / uint64(epochLength)
 	return currentSlot, currentEpoch
 }
 
-// TODO(limechain): replace this mock with the result returned from commit-boost/relayer
-func fetchAssignedSlots(currentSlot uint64) []uint64 {
-	currentEpochFirstSlot := currentSlot - currentSlot%epochLength
-	return []uint64{
-		currentEpochFirstSlot + 0,
-		// currentEpochFirstSlot + 1,
-		// currentEpochFirstSlot + 2,
-		currentEpochFirstSlot + 3,
-		currentEpochFirstSlot + 4,
-		currentEpochFirstSlot + 5,
-		currentEpochFirstSlot + 6,
-		currentEpochFirstSlot + 7,
-		currentEpochFirstSlot + 8,
-		currentEpochFirstSlot + 9,
-		currentEpochFirstSlot + 10,
-		currentEpochFirstSlot + 11,
-		currentEpochFirstSlot + 12,
-		currentEpochFirstSlot + 13,
-		currentEpochFirstSlot + 14,
-		// currentEpochFirstSlot + 15,
-		// currentEpochFirstSlot + 16,
-		// currentEpochFirstSlot + 17,
-		// currentEpochFirstSlot + 18,
-		// currentEpochFirstSlot + 19,
-		// currentEpochFirstSlot + 20,
-		currentEpochFirstSlot + 21,
-		currentEpochFirstSlot + 22,
-		currentEpochFirstSlot + 23,
-		currentEpochFirstSlot + 24,
-		currentEpochFirstSlot + 25,
-		currentEpochFirstSlot + 26,
-		currentEpochFirstSlot + 27,
-		currentEpochFirstSlot + 28,
-		currentEpochFirstSlot + 29,
-		currentEpochFirstSlot + 30,
-		currentEpochFirstSlot + 31,
-	}
+func slotIndex(slot uint64) uint64 {
+	return slot % uint64(epochLength)
 }
 
 func (p *Proposer) triggerOnNewEpochStart() {
@@ -230,17 +196,20 @@ func (p *Proposer) triggerOnNewEpochStart() {
 	for {
 		select {
 		case <-p.ctx.Done():
-			log.Warn("Stopping the new epoch handler")
+			log.Warn("Stopping the epoch handler")
 			return
 		default:
+			// TODO(limechain): mock for testing
+			now := time.Now().Unix() // int64(1724754336)
+
 			// At the beginning of new epoch, update the config params and slots in the L2 execution engine.
-			currentSlot, currentEpoch := p.currentSlotAndEpoch(p.L1GenesisTimestamp, time.Now().Unix())
+			currentSlot, currentEpoch := currentSlotAndEpoch(p.L1GenesisTimestamp, now)
 
 			if currentEpoch > lastEpoch {
 				lastEpoch = currentEpoch
 				log.Info("New epoch started", "epoch", currentEpoch, "slot", currentSlot)
 
-				currentEpochAssignedSlots := fetchAssignedSlots(currentSlot)
+				currentEpochAssignedSlots := p.fetchAssignedSlots(currentSlot)
 
 				_, err := p.rpc.UpdateL2ConfigAndSlots(
 					p.ctx,
@@ -264,31 +233,108 @@ func (p *Proposer) triggerOnNewEpochStart() {
 	}
 }
 
-// eventLoop starts the main loop of Taiko proposer.
-func (p *Proposer) eventLoop() {
-	defer func() {
-		p.proposingTimer.Stop()
-		p.wg.Done()
-	}()
+func (p *Proposer) triggerAfterNewSlotStart() {
+	defer p.wg.Done()
+
+	var lastSlot uint64
+	var slotStartAt uint64
 
 	for {
-		p.updateProposingTicker()
-
 		select {
 		case <-p.ctx.Done():
+			log.Warn("Stopping the slot handler")
 			return
-		// proposing interval timer has been reached
-		case <-p.proposingTimer.C:
-			metrics.ProposerProposeEpochCounter.Add(1)
+		default:
+			// TODO(limechain): mock for testing
+			now := time.Now().Unix() // int64(1724754336)
 
-			// Attempt a proposing operation
-			if err := p.ProposeOp(p.ctx); err != nil {
-				log.Error("Proposing operation error", "error", err)
-				continue
+			// At the beginning of new slot, try to propose a new block.
+			currentSlot, currentEpoch := currentSlotAndEpoch(p.L1GenesisTimestamp, now)
+			log.Info("Current", "epoch", currentEpoch, "slot", currentSlot, "index", slotIndex(currentSlot))
+
+			if currentSlot > lastSlot {
+				lastSlot = currentSlot
+				slotStartAt = uint64(now)
+				log.Warn("New slot started", "slot", slotIndex(currentSlot), "start at", slotStartAt)
 			}
+
+			if uint64(now)-slotStartAt >= 8 {
+				// Attempt a proposing operation
+				if err := p.ProposeOp(p.ctx); err != nil {
+					log.Error("Proposing operation error", "error", err)
+					continue
+				}
+			}
+
+			time.Sleep(500 * time.Millisecond)
 		}
 	}
 }
+
+// TODO(limechain): replace this mock with the result returned from commit-boost/relayer
+func (p *Proposer) fetchAssignedSlots(currentSlot uint64) []uint64 {
+	currentEpochFirstSlot := currentSlot - slotIndex(currentSlot)
+	return []uint64{
+		currentEpochFirstSlot + 0,
+		currentEpochFirstSlot + 1,
+		currentEpochFirstSlot + 2,
+		currentEpochFirstSlot + 3,
+		currentEpochFirstSlot + 4,
+		currentEpochFirstSlot + 5,
+		currentEpochFirstSlot + 6,
+		currentEpochFirstSlot + 7,
+		currentEpochFirstSlot + 8,
+		currentEpochFirstSlot + 9,
+		currentEpochFirstSlot + 10,
+		currentEpochFirstSlot + 11,
+		currentEpochFirstSlot + 12,
+		currentEpochFirstSlot + 13,
+		currentEpochFirstSlot + 14,
+		currentEpochFirstSlot + 15,
+		currentEpochFirstSlot + 16,
+		currentEpochFirstSlot + 17,
+		currentEpochFirstSlot + 18,
+		currentEpochFirstSlot + 19,
+		currentEpochFirstSlot + 20,
+		currentEpochFirstSlot + 21,
+		currentEpochFirstSlot + 22,
+		currentEpochFirstSlot + 23,
+		currentEpochFirstSlot + 24,
+		currentEpochFirstSlot + 25,
+		currentEpochFirstSlot + 26,
+		currentEpochFirstSlot + 27,
+		currentEpochFirstSlot + 28,
+		currentEpochFirstSlot + 29,
+		currentEpochFirstSlot + 30,
+		currentEpochFirstSlot + 31,
+	}
+}
+
+// // eventLoop starts the main loop of Taiko proposer.
+// func (p *Proposer) eventLoop() {
+// 	defer func() {
+// 		p.proposingTimer.Stop()
+// 		p.wg.Done()
+// 	}()
+
+// 	for {
+// 		p.updateProposingTicker()
+
+// 		select {
+// 		case <-p.ctx.Done():
+// 			return
+// 		// proposing interval timer has been reached
+// 		case <-p.proposingTimer.C:
+// 			metrics.ProposerProposeEpochCounter.Add(1)
+
+// 			// Attempt a proposing operation
+// 			if err := p.ProposeOp(p.ctx); err != nil {
+// 				log.Error("Proposing operation error", "error", err)
+// 				continue
+// 			}
+// 		}
+// 	}
+// }
 
 // Close closes the proposer instance.
 func (p *Proposer) Close(_ context.Context) {
