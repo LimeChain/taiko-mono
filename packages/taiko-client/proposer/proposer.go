@@ -575,7 +575,7 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 		log.Info("Proposer current pending nonce", "nonce", nonce)
 
 		g.Go(func() error {
-			if p.isEligibleValidatorForNextSlot() {
+			if txs.Len() > 0 && p.isEligibleValidatorForNextSlot() {
 				l1HeadSlot := p.l1HeadSlot.Load().(*uint64)
 				nextSlot := *l1HeadSlot + 1
 

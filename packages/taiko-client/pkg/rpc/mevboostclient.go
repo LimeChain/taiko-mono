@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,9 +18,9 @@ type Validators struct {
 }
 
 type Constraints struct {
-	Slot uint64
-	Top  []string
-	Rest []string
+	Top        types.Transactions `json:"top"`
+	Rest       types.Transactions `json:"rest"`
+	SlotNumber uint64             `json:"slot_number"`
 }
 
 // MevBoostClient represents a client for interacting with the MEV Boost server.
@@ -48,8 +49,18 @@ func NewMevBoostClient(baseURL string, timeout time.Duration) (*MevBoostClient, 
 func (c *MevBoostClient) SetConstraints(slot uint64, txs types.Transactions) error {
 	url := fmt.Sprintf("%s/v1/constraints", c.baseURL)
 
-	// TODO: Implement constraints
-	resp, err := c.client.Post(url, "application/json", nil)
+	constraints := Constraints{
+		Top:        txs,
+		Rest:       types.Transactions{},
+		SlotNumber: slot,
+	}
+
+	body, err := json.Marshal(constraints)
+	if err != nil {
+		return fmt.Errorf("failed to marshal constraints: %w", err)
+	}
+
+	resp, err := c.client.Post(url, "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
 	}
