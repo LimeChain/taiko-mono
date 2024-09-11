@@ -613,6 +613,10 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 			p.lastProposedAt = time.Now()
 			return nil
 		})
+
+		if err := p.rpc.WaitL1NewPendingTransaction(ctx, p.proposerAddress, nonce); err != nil {
+			log.Error("Failed to wait for new pending transaction", "error", err)
+		}
 	}
 	if err := g.Wait(); err != nil {
 		return err
