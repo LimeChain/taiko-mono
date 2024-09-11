@@ -99,12 +99,14 @@ func (c *EngineClient) ExchangeTransitionConfiguration(
 	return result, nil
 }
 
-func (c *EngineClient) BuildTxList(
+func (c *EngineClient) UpdateConfigAndSlots(
 	ctx context.Context,
-	beneficiary common.Address,
+	l1GenesisTimestamp uint64,
+	currentAssignedSlots []uint64,
 	baseFee *big.Int,
 	blockMaxGasLimit uint64,
 	maxBytesPerTxList uint64,
+	beneficiary common.Address,
 	locals []string,
 	maxTransactionsLists uint64,
 ) ([]*miner.PreBuiltTxList, error) {
@@ -115,11 +117,13 @@ func (c *EngineClient) BuildTxList(
 	if err := c.CallContext(
 		timeoutCtx,
 		&result,
-		"taikoAuth_buildTxList",
-		beneficiary,
+		"taikoAuth_updateConfigAndSlots",
+		l1GenesisTimestamp,
+		currentAssignedSlots,
 		baseFee,
 		blockMaxGasLimit,
 		maxBytesPerTxList,
+		beneficiary,
 		locals,
 		maxTransactionsLists,
 	); err != nil {

@@ -22,7 +22,6 @@ var (
 	proposerDutiesRequestURL = "/eth/v1/validator/duties/proposer/%d"
 	genesisRequestURL        = "/eth/v1/beacon/genesis"
 	getConfigSpecPath        = "/eth/v1/config/spec"
-	getNodeSyncingPath       = "/eth/v1/node/syncing"
 )
 
 type ConfigSpec struct {
@@ -213,27 +212,17 @@ func (c *BeaconClient) filterProposerDuties(duties []*ProposerDuty, headSlot uin
 	return filteredDuties
 }
 
-// GetHeadSlot returns the current head slot.
-func (c *BeaconClient) GetHeadSlot(ctx context.Context) (*uint64, error) {
-	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, c.timeout)
-	defer cancel()
+func (c *BeaconClient) GetL1HeadSlot() uint64 {
+	now := time.Now().Unix()
+	elapsedTime := uint64(now) - c.genesisTime
+	l1HeadSlot := elapsedTime / c.secondsPerSlot
+	return l1HeadSlot
+}
 
-	resBytes, err := c.Get(ctxWithTimeout, c.BaseURL().Path+getNodeSyncingPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "error requesting configSpecPath")
-	}
+func (c *BeaconClient) GetTimestampBySlot(slot uint64) uint64 {
+	return c.genesisTime + slot*c.secondsPerSlot
+}
 
-	nodeSyncing := &GetNodeSyncingResponse{}
-	if err := json.Unmarshal(resBytes, &nodeSyncing); err != nil {
-		return nil, err
-	}
-
-	headSlot, err := strconv.Atoi(nodeSyncing.Data.HeadSlot)
-	if err != nil {
-		return nil, err
-	}
-
-	currentSlot := uint64(headSlot)
-
-	return &currentSlot, nil
+func (c *BeaconClient) GetGenesisTimestamp() uint64 {
+	return c.genesisTime
 }

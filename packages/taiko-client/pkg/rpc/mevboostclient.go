@@ -2,14 +2,13 @@ package rpc
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"time"
 
 	"net/http"
-
-	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type Validators struct {
@@ -18,9 +17,9 @@ type Validators struct {
 }
 
 type Constraints struct {
-	Top        types.Transactions `json:"top"`
-	Rest       types.Transactions `json:"rest"`
-	SlotNumber uint64             `json:"slot_number"`
+	Top        []string `json:"top"`
+	Rest       []string `json:"rest"`
+	SlotNumber uint64   `json:"slot_number"`
 }
 
 // MevBoostClient represents a client for interacting with the MEV Boost server.
@@ -46,16 +45,19 @@ func NewMevBoostClient(baseURL string, timeout time.Duration) (*MevBoostClient, 
 	return client, nil
 }
 
-func (c *MevBoostClient) SetConstraints(slot uint64, txs types.Transactions) error {
+func (c *MevBoostClient) SetConstraints(slot uint64, tx []byte) error {
 	url := fmt.Sprintf("%s/v1/constraints", c.baseURL)
 
+	hexStr := hex.EncodeToString(tx)
+
 	constraints := Constraints{
-		Top:        txs,
-		Rest:       types.Transactions{},
+		Top:        []string{hexStr},
+		Rest:       []string{},
 		SlotNumber: slot,
 	}
 
 	body, err := json.Marshal(constraints)
+
 	if err != nil {
 		return fmt.Errorf("failed to marshal constraints: %w", err)
 	}

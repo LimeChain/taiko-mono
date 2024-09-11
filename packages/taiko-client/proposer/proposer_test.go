@@ -128,7 +128,7 @@ func (s *ProposerTestSuite) TestProposeTxLists() {
 	emptyTxListBytes, err := rlp.EncodeToBytes(types.Transactions{})
 	s.Nil(err)
 	txListsBytes := [][]byte{emptyTxListBytes}
-	txCandidates := make([]txmgr.TxCandidate, len(txListsBytes))
+	txCandidates := make([]builder.TxCandidate, len(txListsBytes))
 	for i, txListBytes := range txListsBytes {
 		compressedTxListBytes, err := utils.Compress(txListBytes)
 		if err != nil {
@@ -176,9 +176,7 @@ func (s *ProposerTestSuite) TestProposeOpNoEmptyBlock() {
 
 	var preBuiltTxList []*miner.PreBuiltTxList
 	for i := 0; i < 3 && len(preBuiltTxList) == 0; i++ {
-		preBuiltTxList, err = s.RPCClient.FetchTxList(
-			context.Background(),
-		)
+		preBuiltTxList, err = s.RPCClient.FetchTxList(context.Background())
 		time.Sleep(time.Second)
 	}
 	s.Nil(err)
