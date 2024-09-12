@@ -409,40 +409,41 @@ func (p *Proposer) updateProposerDuties(ctx context.Context) (bool, error) {
 		return false, nil
 	}
 
-	var wg sync.WaitGroup
-	errors := make(chan error, len(proposerDuties))
-	var mu sync.Mutex
+	// TODO: Uncomment once the proposer fallback mechanism is implemented in the relayer.
+	// var wg sync.WaitGroup
+	// errors := make(chan error, len(proposerDuties))
+	// var mu sync.Mutex
 
-	height, err := p.getBlockBySlot(l1HeadSlot)
+	// height, err := p.getBlockBySlot(l1HeadSlot)
 
-	if err != nil {
-		return false, fmt.Errorf("failed to get block by slot: %w", err)
-	}
+	// if err != nil {
+	// 	return false, fmt.Errorf("failed to get block by slot: %w", err)
+	// }
 
-	for i, duty := range proposerDuties {
-		wg.Add(1)
-		go func(duty *rpc.ProposerDuty, index int) {
-			defer wg.Done()
-			updatedDuty, err := p.handleDuty(ctx, duty, index, l1HeadSlot, height)
-			if err != nil {
-				errors <- err
-				return
-			}
+	// for i, duty := range proposerDuties {
+	// 	wg.Add(1)
+	// 	go func(duty *rpc.ProposerDuty, index int) {
+	// 		defer wg.Done()
+	// 		updatedDuty, err := p.handleDuty(ctx, duty, index, l1HeadSlot, height)
+	// 		if err != nil {
+	// 			errors <- err
+	// 			return
+	// 		}
 
-			mu.Lock()
-			proposerDuties[index] = updatedDuty
-			mu.Unlock()
-		}(duty, i)
-	}
+	// 		mu.Lock()
+	// 		proposerDuties[index] = updatedDuty
+	// 		mu.Unlock()
+	// 	}(duty, i)
+	// }
 
-	wg.Wait()
-	close(errors)
+	// wg.Wait()
+	// close(errors)
 
-	for err := range errors {
-		if err != nil {
-			return false, err
-		}
-	}
+	// for err := range errors {
+	// 	if err != nil {
+	// 		return false, err
+	// 	}
+	// }
 
 	p.proposerDuties = proposerDuties
 
@@ -613,10 +614,6 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 			p.lastProposedAt = time.Now()
 			return nil
 		})
-
-		if err := p.rpc.WaitL1NewPendingTransaction(ctx, p.proposerAddress, nonce); err != nil {
-			log.Error("Failed to wait for new pending transaction", "error", err)
-		}
 	}
 	if err := g.Wait(); err != nil {
 		return err
@@ -662,7 +659,7 @@ func (p *Proposer) ProposeTxList(
 			return fmt.Errorf("failed to set validator mev boost constraints: %w", err)
 		}
 
-		// Since we are not sending the transaction to the network, but instead to the MEV-Boost , we need to reset the nonce.
+		// Since we are not sending the transaction to the network, but instead to the MEV-Boost, we need to reset the nonce.
 		p.txmgr.ResetNonce()
 	} else {
 		receipt, err := p.txmgr.Send(ctx, *txCandidate)
