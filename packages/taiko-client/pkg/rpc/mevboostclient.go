@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"net/http"
+
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type Validators struct {
@@ -45,10 +47,19 @@ func NewMevBoostClient(baseURL string, timeout time.Duration) (*MevBoostClient, 
 	return client, nil
 }
 
-func (c *MevBoostClient) SetConstraints(slot uint64, tx []byte) error {
+func (c *MevBoostClient) SetConstraints(slot uint64, tx *types.Transaction) error {
 	url := fmt.Sprintf("%s/v1/constraints", c.baseURL)
 
-	hexStr := hex.EncodeToString(tx)
+	txBytes, err := tx.MarshalBinary()
+	if err != nil {
+		return err
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to get transaction signature: %w", err)
+	}
+
+	hexStr := hex.EncodeToString(txBytes)
 
 	constraints := Constraints{
 		Top:        []string{hexStr},

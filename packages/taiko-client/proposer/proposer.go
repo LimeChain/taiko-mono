@@ -655,18 +655,15 @@ func (p *Proposer) ProposeTxList(
 			return err
 		}
 
-		txBytes, err := tx.MarshalBinary()
-		if err != nil {
-			log.Warn("Failed to marshal TaikoL1.proposeBlock transaction", "error", encoding.TryParsingCustomError(err))
-			return err
-		}
-
 		l1HeadSlot := p.l1HeadSlot.Load().(uint64)
 		nextSlot := l1HeadSlot + 1
 
-		if err = p.rpc.L1MevBoost.SetConstraints(nextSlot, txBytes); err != nil {
+		if err = p.rpc.L1MevBoost.SetConstraints(nextSlot, tx); err != nil {
 			return fmt.Errorf("failed to set validator mev boost constraints: %w", err)
 		}
+
+		// Since we are not sending the transaction to the network, but instead to the MEV-Boost , we need to reset the nonce.
+		p.txmgr.ResetNonce()
 	} else {
 		receipt, err := p.txmgr.Send(ctx, *txCandidate)
 		if err != nil {

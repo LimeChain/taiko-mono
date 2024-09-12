@@ -221,7 +221,7 @@ func (m *SimpleTxManager) Send(ctx context.Context, candidate TxCandidate) (*typ
 	}()
 	receipt, err := m.send(ctx, candidate)
 	if err != nil {
-		m.resetNonce()
+		m.ResetNonce()
 	}
 	return receipt, err
 }
@@ -410,7 +410,7 @@ func (m *SimpleTxManager) signWithNextNonce(ctx context.Context, txMessage types
 
 // resetNonce resets the internal nonce tracking. This is called if any pending send
 // returns an error.
-func (m *SimpleTxManager) resetNonce() {
+func (m *SimpleTxManager) ResetNonce() {
 	m.nonceLock.Lock()
 	defer m.nonceLock.Unlock()
 	m.nonce = nil
