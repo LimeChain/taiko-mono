@@ -181,10 +181,12 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 		return fmt.Errorf("the validator is not eligible signer, pubkey: %s", p.validatorPublicKeyHex)
 	}
 
-	// Wait until L2 execution engine is synced at first.
+	// Wait until L2 execution engine is synced at first
 	if err := p.rpc.WaitTillL2ExecutionEngineSynced(ctx); err != nil {
 		return fmt.Errorf("failed to wait until L2 execution engine synced: %w", err)
 	}
+
+	log.Info("Proposer initialized successfully")
 
 	return nil
 }
@@ -215,6 +217,17 @@ func (p *Proposer) eventLoop() {
 		case <-p.ctx.Done():
 			return
 		case <-p.l1HeadSlotTimer.C:
+			progress, err := p.rpc.L2.SyncProgress(p.ctx)
+			if err != nil {
+				log.Error("Fetch L2 execution engine sync progress error", "error", err)
+				continue
+			}
+
+			if progress != nil {
+				log.Info("L2 execution engine is syncing, waiting for it to finish")
+				continue
+			}
+
 			updated, err := p.syncL1ProposerDuties(p.ctx, p.rpc.L1Beacon.GetL1HeadSlot())
 			if err != nil {
 				log.Error("Sync L1 proposer duties operation error", "error", err)
@@ -542,7 +555,7 @@ func (p *Proposer) updateL1HeadSlotTicker() {
 		durationSec = int64(secPerSlot) - AbsInt(durationSec)
 	}
 
-	log.Debug("Setting L1 head slot timer", "nextSlot", p.rpc.L1Beacon.GetL1HeadSlot()+1, "duration", durationSec)
+	log.Debug("Setting L1 head slot timer", "next slot", p.rpc.L1Beacon.GetL1HeadSlot()+1, "time to slot", durationSec)
 
 	duration := time.Duration(durationSec) * time.Second
 	p.l1HeadSlotTimer = time.NewTimer(duration)
