@@ -217,6 +217,8 @@ func (p *Proposer) eventLoop() {
 		case <-p.ctx.Done():
 			return
 		case <-p.l1HeadSlotTimer.C:
+			log.Info("L1 head slot", "slot", p.rpc.L1Beacon.GetL1HeadSlot())
+
 			progress, err := p.rpc.L2.SyncProgress(p.ctx)
 			if err != nil {
 				log.Error("Fetch L2 execution engine sync progress error", "error", err)
@@ -555,7 +557,7 @@ func (p *Proposer) updateL1HeadSlotTicker() {
 		durationSec = int64(secPerSlot) - AbsInt(durationSec)
 	}
 
-	log.Debug("Setting L1 head slot timer", "next slot", p.rpc.L1Beacon.GetL1HeadSlot()+1, "time to slot", durationSec)
+	log.Debug("Setting L1 head slot timer", "next L1 head slot", p.rpc.L1Beacon.GetL1HeadSlot()+1, "time to slot", durationSec)
 
 	duration := time.Duration(durationSec) * time.Second
 	p.l1HeadSlotTimer = time.NewTimer(duration)
