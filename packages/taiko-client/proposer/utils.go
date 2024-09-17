@@ -9,6 +9,13 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+func AbsInt(n int64) int64 {
+	if n < 0 {
+		return -n
+	}
+	return n
+}
+
 func GetAddressFromBlsPublikKeyHex(blsPubKeyHex string) common.Address {
 	if err := bls.Init(bls.BLS12_381); err != nil {
 		log.Crit("Failed to initialize BLS library: %v", err)

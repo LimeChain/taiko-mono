@@ -210,24 +210,24 @@ type TxCandidate struct {
 // transaction manager will do a gas estimation.
 //
 // NOTE: Send can be called concurrently, the nonce will be managed internally.
-func (m *SimpleTxManager) Send(ctx context.Context, candidate TxCandidate) (*types.Receipt, error) {
+func (m *SimpleTxManager) Send(ctx context.Context, candidate TxCandidate) error {
 	// refuse new requests if the tx manager is closed
 	if m.closed.Load() {
-		return nil, ErrClosed
+		return ErrClosed
 	}
 	m.metr.RecordPendingTx(m.pending.Add(1))
 	defer func() {
 		m.metr.RecordPendingTx(m.pending.Add(-1))
 	}()
-	receipt, err := m.send(ctx, candidate)
+	err := m.send(ctx, candidate)
 	if err != nil {
 		m.ResetNonce()
 	}
-	return receipt, err
+	return err
 }
 
 // send performs the actual transaction creation and sending.
-func (m *SimpleTxManager) send(ctx context.Context, candidate TxCandidate) (*types.Receipt, error) {
+func (m *SimpleTxManager) send(ctx context.Context, candidate TxCandidate) error {
 	if m.cfg.TxSendTimeout != 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, m.cfg.TxSendTimeout)
@@ -244,7 +244,7 @@ func (m *SimpleTxManager) send(ctx context.Context, candidate TxCandidate) (*typ
 		return tx, err
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create the tx: %w", err)
+		return fmt.Errorf("failed to create the tx: %w", err)
 	}
 	return m.sendTx(ctx, tx)
 }
@@ -416,63 +416,43 @@ func (m *SimpleTxManager) ResetNonce() {
 	m.nonce = nil
 }
 
+// resetNonce resets the internal nonce tracking. This is called if any pending send
+// returns an error.
+func (m *SimpleTxManager) GetNonce() *uint64 {
+	return m.nonce
+}
+
+// resetNonce resets the internal nonce tracking. This is called if any pending send
+// returns an error.
+func (m *SimpleTxManager) DecNonce() {
+	m.nonceLock.Lock()
+	defer m.nonceLock.Unlock()
+	*m.nonce--
+}
+
 // send submits the same transaction several times with increasing gas prices as necessary.
 // It waits for the transaction to be confirmed on chain.
-func (m *SimpleTxManager) sendTx(ctx context.Context, tx *types.Transaction) (*types.Receipt, error) {
+func (m *SimpleTxManager) sendTx(ctx context.Context, tx *types.Transaction) error {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	sendState := NewSendState(m.cfg.SafeAbortNonceTooLowCount, m.cfg.TxNotInMempoolTimeout)
-	receiptChan := make(chan *types.Receipt, 1)
-	publishAndWait := func(tx *types.Transaction, bumpFees bool) *types.Transaction {
+	publish := func(tx *types.Transaction, bumpFees bool) *types.Transaction {
 		wg.Add(1)
-		tx, published := m.publishTx(ctx, tx, sendState, bumpFees)
-		if published {
-			go func() {
-				defer wg.Done()
-				m.waitForTx(ctx, tx, sendState, receiptChan)
-			}()
-		} else {
-			wg.Done()
-		}
+		tx, _ = m.publishTx(ctx, tx, sendState, bumpFees)
+		wg.Done()
 		return tx
 	}
 
-	// Immediately publish a transaction before starting the resubmission loop
-	tx = publishAndWait(tx, false)
+	tx = publish(tx, false)
 
-	ticker := time.NewTicker(m.cfg.ResubmissionTimeout)
-	defer ticker.Stop()
-
-	for {
-		if err := sendState.CriticalError(); err != nil {
-			m.txLogger(tx, false).Warn("Aborting transaction submission", "err", err)
-			return nil, fmt.Errorf("aborted tx send due to critical error: %w", err)
-		}
-		select {
-		case <-ticker.C:
-			// Don't resubmit a transaction if it has been mined, but we are waiting for the conf depth.
-			if sendState.IsWaitingForConfirmation() {
-				continue
-			}
-			// if the tx manager closed while we were waiting for the tx, give up
-			if m.closed.Load() {
-				m.txLogger(tx, false).Warn("TxManager closed, aborting transaction submission")
-				return nil, ErrClosed
-			}
-			tx = publishAndWait(tx, true)
-
-		case <-ctx.Done():
-			return nil, ctx.Err()
-
-		case receipt := <-receiptChan:
-			m.metr.RecordGasBumpCount(sendState.bumpCount)
-			m.metr.TxConfirmed(receipt)
-			return receipt, nil
-		}
+	if err := sendState.CriticalError(); err != nil {
+		m.txLogger(tx, false).Warn("Aborting transaction submission", "err", err)
+		return fmt.Errorf("aborted tx send due to critical error: %w", err)
 	}
+	return nil
 }
 
 // publishTx publishes the transaction to the transaction pool. If it receives any underpriced errors
@@ -489,27 +469,18 @@ func (m *SimpleTxManager) publishTx(ctx context.Context, tx *types.Transaction, 
 			l.Warn("TxManager closed, aborting transaction submission")
 			return tx, false
 		}
-		if bumpFeesImmediately {
-			newTx, err := m.increaseGasPrice(ctx, tx)
-			if err != nil {
-				l.Error("unable to increase gas", "err", err)
-				m.metr.TxPublished("bump_failed")
-				return tx, false
-			}
-			tx = newTx
-			sendState.bumpCount++
-			l = m.txLogger(tx, true)
-		}
-		bumpFeesImmediately = true // bump fees next loop
-
-		if sendState.IsWaitingForConfirmation() {
-			// there is a chance the previous tx goes into "waiting for confirmation" state
-			// during the increaseGasPrice call; continue waiting rather than resubmit the tx
+		newTx, err := m.increaseGasPrice(ctx, tx)
+		if err != nil {
+			l.Error("unable to increase gas", "err", err)
+			m.metr.TxPublished("bump_failed")
 			return tx, false
 		}
+		tx = newTx
+		sendState.bumpCount++
+		l = m.txLogger(tx, true)
 
 		cCtx, cancel := context.WithTimeout(ctx, m.cfg.NetworkTimeout)
-		err := m.backend.SendTransaction(cCtx, tx)
+		err = m.backend.SendTransaction(cCtx, tx)
 		cancel()
 		sendState.ProcessSendError(err)
 

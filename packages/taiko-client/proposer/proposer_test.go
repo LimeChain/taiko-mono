@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings"
-	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/encoding"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/chain_syncer/beaconsync"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/chain_syncer/blob"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/state"
@@ -154,9 +153,8 @@ func (s *ProposerTestSuite) TestProposeTxLists() {
 	}
 
 	for _, txCandidate := range txCandidates {
-		receipt, err := p.txmgr.Send(ctx, txCandidate)
+		err := p.txmgr.Send(ctx, txCandidate)
 		s.Nil(err)
-		s.Nil(encoding.TryParsingCustomErrorFromReceipt(ctx, p.rpc.L1, p.proposerAddress, receipt))
 	}
 }
 
@@ -176,7 +174,7 @@ func (s *ProposerTestSuite) TestProposeOpNoEmptyBlock() {
 
 	var preBuiltTxList []*miner.PreBuiltTxList
 	for i := 0; i < 3 && len(preBuiltTxList) == 0; i++ {
-		preBuiltTxList, err = s.RPCClient.FetchTxList(context.Background())
+		preBuiltTxList, err = s.RPCClient.FetchTxList(context.Background(), uint64(i))
 		time.Sleep(time.Second)
 	}
 	s.Nil(err)

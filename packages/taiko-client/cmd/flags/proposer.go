@@ -79,7 +79,7 @@ var (
 		Name:     "epoch.delay",
 		Usage:    "Time delay to propose L2 pending transactions in seconds",
 		Category: proposerCategory,
-		Value:    8,
+		Value:    2,
 		EnvVars:  []string{"EPOCH_DELAY"},
 	}
 	MinGasUsed = &cli.Uint64Flag{
@@ -100,14 +100,14 @@ var (
 		Name:     "epoch.maxProposerDutiesSlots",
 		Usage:    "The count of the proposer duties slots the proposer will track if it can propose a block",
 		Category: proposerCategory,
-		Value:    10,
+		Value:    32,
 		EnvVars:  []string{"EPOCH_MAX_PROPOSER_DUTIES_SLOTS"},
 	}
 	ProposerDutiesUpdateFreq = &cli.Uint64Flag{
 		Name:     "epoch.proposerDutiesUpdateFreq",
 		Usage:    "The frequency of updating proposer duties slots",
 		Category: proposerCategory,
-		Value:    8,
+		Value:    24,
 		EnvVars:  []string{"EPOCH_PROPOSER_DUTIES_UPDATE_FREQ"},
 	}
 	// Proposing metadata related.

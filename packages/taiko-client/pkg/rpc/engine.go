@@ -132,12 +132,12 @@ func (c *EngineClient) UpdateConfigAndSlots(
 	return result, nil
 }
 
-func (c *EngineClient) FetchTxList(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
+func (c *EngineClient) FetchTxList(ctx context.Context, l1Slot uint64) ([]*miner.PreBuiltTxList, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
 	var result []*miner.PreBuiltTxList
-	if err := c.CallContext(timeoutCtx, &result, "taikoAuth_fetchTxList"); err != nil {
+	if err := c.CallContext(timeoutCtx, &result, "taikoAuth_fetchTxList", l1Slot); err != nil {
 		return nil, err
 	}
 	return result, nil

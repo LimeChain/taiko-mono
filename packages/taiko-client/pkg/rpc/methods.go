@@ -301,11 +301,11 @@ func (c *Client) UpdateL2ConfigAndSlots(
 
 // FetchTxList fetches the transactions list from L2 execution engine's transactions pool with given
 // upper limit.
-func (c *Client) FetchTxList(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
+func (c *Client) FetchTxList(ctx context.Context, l1Slot uint64) ([]*miner.PreBuiltTxList, error) {
 	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, defaultTimeout)
 	defer cancel()
 
-	return c.L2Engine.FetchTxList(ctxWithTimeout)
+	return c.L2Engine.FetchTxList(ctxWithTimeout, l1Slot)
 }
 
 // L2AccountNonce fetches the nonce of the given L2 account at a specified height.

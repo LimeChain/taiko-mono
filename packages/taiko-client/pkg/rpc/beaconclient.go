@@ -226,3 +226,11 @@ func (c *BeaconClient) GetTimestampBySlot(slot uint64) uint64 {
 func (c *BeaconClient) GetGenesisTimestamp() uint64 {
 	return c.genesisTime
 }
+
+func (c *BeaconClient) GetSecondsPerSlot() uint64 {
+	return c.secondsPerSlot
+}
+
+func (c *BeaconClient) GetSlotsPerEpoch() uint64 {
+	return c.slotsPerEpoch
+}
