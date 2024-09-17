@@ -252,7 +252,7 @@ func (p *Proposer) eventLoop() {
 					continue
 				}
 
-				log.Debug("Updated L2 config and slots successfully", "eligibleSlots", p.eligibleSlots)
+				log.Debug("Updated L2 config and slots successfully", "L1 eligible slots", p.eligibleSlots)
 			}
 
 			log.Debug("Checking if the proposer is eligible for the slots", "slot", p.rpc.L1Beacon.GetL1HeadSlot()+1, "slot", p.rpc.L1Beacon.GetL1HeadSlot()+2)
@@ -272,14 +272,14 @@ func (p *Proposer) eventLoop() {
 				}
 			}
 
-			isEligible, err := p.isEligibleForSlot(p.rpc.L1Beacon.GetL1HeadSlot() + 1)
+			isEligible, err := p.isEligibleForL1Slot(p.rpc.L1Beacon.GetL1HeadSlot() + 1)
 			if err != nil {
-				log.Error("Failed to check if the proposer is eligible for the slot", "error", err)
+				log.Error("Failed to check if the proposer is eligible for the L1 slot", "error", err)
 				continue
 			}
 			if !isEligible {
 				metrics.ProposerProposeEpochCounter.Add(1)
-				log.Debug("Proposer IS NOT eligible for the slot", "slot", p.rpc.L1Beacon.GetL1HeadSlot()+1)
+				log.Debug("Proposer IS NOT eligible for the L1 slot", "slot", p.rpc.L1Beacon.GetL1HeadSlot()+1)
 
 				// Attempt a propose operation
 				if err := p.ProposeOp(p.ctx); err != nil {
@@ -288,14 +288,14 @@ func (p *Proposer) eventLoop() {
 				}
 			}
 
-			isEligible, err = p.isEligibleForSlot(p.rpc.L1Beacon.GetL1HeadSlot() + 2)
+			isEligible, err = p.isEligibleForL1Slot(p.rpc.L1Beacon.GetL1HeadSlot() + 2)
 			if err != nil {
-				log.Error("Failed to check if the proposer is eligible for the slot", "error", err)
+				log.Error("Failed to check if the proposer is eligible for the L1 slot", "error", err)
 				continue
 			}
 			if isEligible {
 				metrics.ProposerProposeEpochCounter.Add(1)
-				log.Debug("Proposer IS eligible for the slot", "slot", p.rpc.L1Beacon.GetL1HeadSlot()+2)
+				log.Debug("Proposer IS eligible for the L1 slot", "slot", p.rpc.L1Beacon.GetL1HeadSlot()+2)
 
 				// Attempt a preconf operation
 				if err := p.PreconfOp(p.ctx); err != nil {
@@ -477,7 +477,7 @@ func (p *Proposer) handleDuty(ctx context.Context, duty *rpc.ProposerDuty, index
 	return true, nil
 }
 
-func (p *Proposer) isEligibleForSlot(slot uint64) (bool, error) {
+func (p *Proposer) isEligibleForL1Slot(slot uint64) (bool, error) {
 	if len(p.eligibleSlots) == 0 {
 		return false, fmt.Errorf("no eligible slots found")
 	}
