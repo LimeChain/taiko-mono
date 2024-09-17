@@ -465,6 +465,9 @@ func (p *Proposer) handleDuty(ctx context.Context, duty *rpc.ProposerDuty, index
 }
 
 func (p *Proposer) isEligibleForSlot(slot uint64) (bool, error) {
+	if len(p.eligibleSlots) == 0 {
+		return false, fmt.Errorf("no eligible slots found")
+	}
 	// If the proposer is eligible for the slot, return true.
 	for _, eligibleSlot := range p.eligibleSlots {
 		if slot == eligibleSlot {
