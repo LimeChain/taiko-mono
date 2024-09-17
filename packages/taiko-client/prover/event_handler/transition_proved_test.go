@@ -88,7 +88,6 @@ func (s *EventHandlerTestSuite) SetupTest() {
 		},
 		L1ProposerPrivKey:          l1ProposerPrivKey,
 		L2SuggestedFeeRecipient:    common.HexToAddress(os.Getenv("L2_SUGGESTED_FEE_RECIPIENT")),
-		ProposeDelay:               1024 * time.Hour,
 		MaxProposedTxListsPerEpoch: 1,
 		ProverEndpoints:            s.ProverEndpoints,
 		OptimisticTierFee:          common.Big256,

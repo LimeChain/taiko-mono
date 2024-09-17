@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
@@ -27,7 +26,6 @@ type Config struct {
 	L1ProposerPrivKey          *ecdsa.PrivateKey
 	L2SuggestedFeeRecipient    common.Address
 	ExtraData                  string
-	ProposeDelay               time.Duration
 	LocalAddresses             []common.Address
 	LocalAddressesOnly         bool
 	MinGasUsed                 uint64
@@ -112,7 +110,6 @@ func NewConfigFromCliContext(c *cli.Context) (*Config, error) {
 		L1ProposerPrivKey:          l1ProposerPrivKey,
 		L2SuggestedFeeRecipient:    common.HexToAddress(l2SuggestedFeeRecipient),
 		ExtraData:                  c.String(flags.ExtraData.Name),
-		ProposeDelay:               c.Duration(flags.ProposeDelay.Name),
 		LocalAddresses:             localAddresses,
 		LocalAddressesOnly:         c.Bool(flags.TxPoolLocalsOnly.Name),
 		MinGasUsed:                 c.Uint64(flags.MinGasUsed.Name),

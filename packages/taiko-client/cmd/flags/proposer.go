@@ -74,14 +74,6 @@ var (
 		Value:    3,
 		EnvVars:  []string{"TIER_FEE_MAX_PRICE_BUMPS"},
 	}
-	// Proposing epoch related.
-	ProposeDelay = &cli.DurationFlag{
-		Name:     "epoch.delay",
-		Usage:    "Time delay to propose L2 pending transactions in seconds",
-		Category: proposerCategory,
-		Value:    2,
-		EnvVars:  []string{"EPOCH_DELAY"},
-	}
 	MinGasUsed = &cli.Uint64Flag{
 		Name:     "epoch.minGasUsed",
 		Usage:    "Minimum gas used for a transactions list to propose",
@@ -172,7 +164,6 @@ var ProposerFlags = MergeFlags(CommonFlags, []cli.Flag{
 	L1ProposerPrivKey,
 	L1MevBoostEndpoint,
 	L2SuggestedFeeRecipient,
-	ProposeDelay,
 	TxPoolLocals,
 	TxPoolLocalsOnly,
 	ExtraData,

@@ -75,7 +75,6 @@ func (s *ProposerTestSuite) SetupTest() {
 		},
 		L1ProposerPrivKey:          l1ProposerPrivKey,
 		L2SuggestedFeeRecipient:    common.HexToAddress(os.Getenv("L2_SUGGESTED_FEE_RECIPIENT")),
-		ProposeDelay:               1024 * time.Hour,
 		MaxProposedTxListsPerEpoch: 1,
 		ProverEndpoints:            s.ProverEndpoints,
 		OptimisticTierFee:          common.Big256,
@@ -201,7 +200,6 @@ func (s *ProposerTestSuite) TestProposeOpNoEmptyBlock() {
 	p.LocalAddressesOnly = false
 	p.MinGasUsed = blockMinGasLimit
 	p.MinTxListBytes = blockMinTxListBytes
-	p.ProposeDelay = time.Second
 	s.Nil(p.ProposeOp(context.Background()))
 }
 
