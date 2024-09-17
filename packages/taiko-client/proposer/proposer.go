@@ -706,7 +706,7 @@ func (p *Proposer) PreconfTxList(
 		return fmt.Errorf("failed to set validator mev boost constraints: %w", err)
 	}
 
-	log.Info("📝 Propose transactions succeeded", "txs", txNum)
+	log.Info("📝 Preconf tx sent to the mev-boost", "txs", txNum)
 
 	metrics.ProposerProposedTxListsCounter.Add(1)
 	metrics.ProposerProposedTxsCounter.Add(float64(txNum))
