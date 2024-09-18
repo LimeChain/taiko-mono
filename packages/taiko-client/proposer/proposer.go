@@ -241,17 +241,6 @@ func (p *Proposer) eventLoop() {
 				log.Debug("Updated L2 config and slots successfully", "L1 eligible slots", p.eligibleSlots)
 			}
 
-			progress, err := p.rpc.L2.SyncProgress(p.ctx)
-			if err != nil {
-				log.Error("Fetch L2 execution engine sync progress error", "error", err)
-				continue
-			}
-
-			if progress != nil {
-				log.Info("L2 execution engine is syncing, waiting for it to finish")
-				continue
-			}
-
 			log.Debug("Checking if the proposer is eligible for the slots", "slot", p.rpc.L1Beacon.GetL1HeadSlot()+1, "slot", p.rpc.L1Beacon.GetL1HeadSlot()+2)
 
 			nonce := p.txmgr.GetNonce()
