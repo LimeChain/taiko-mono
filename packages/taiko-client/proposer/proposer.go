@@ -181,11 +181,6 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 		return fmt.Errorf("the validator is not eligible signer, pubkey: %s", p.validatorPublicKeyHex)
 	}
 
-	// Wait until L2 execution engine is synced at first
-	if err := p.rpc.WaitTillL2ExecutionEngineSynced(ctx); err != nil {
-		return fmt.Errorf("failed to wait until L2 execution engine synced: %w", err)
-	}
-
 	log.Info("Proposer initialized successfully")
 
 	return nil
@@ -219,17 +214,6 @@ func (p *Proposer) eventLoop() {
 		case <-p.l1HeadSlotTimer.C:
 			log.Info("L1 head slot", "slot", p.rpc.L1Beacon.GetL1HeadSlot())
 
-			progress, err := p.rpc.L2.SyncProgress(p.ctx)
-			if err != nil {
-				log.Error("Fetch L2 execution engine sync progress error", "error", err)
-				continue
-			}
-
-			if progress != nil {
-				log.Info("L2 execution engine is syncing, waiting for it to finish")
-				continue
-			}
-
 			updated, err := p.syncL1ProposerDuties(p.ctx, p.rpc.L1Beacon.GetL1HeadSlot())
 			if err != nil {
 				log.Error("Sync L1 proposer duties operation error", "error", err)
@@ -255,6 +239,17 @@ func (p *Proposer) eventLoop() {
 				}
 
 				log.Debug("Updated L2 config and slots successfully", "L1 eligible slots", p.eligibleSlots)
+			}
+
+			progress, err := p.rpc.L2.SyncProgress(p.ctx)
+			if err != nil {
+				log.Error("Fetch L2 execution engine sync progress error", "error", err)
+				continue
+			}
+
+			if progress != nil {
+				log.Info("L2 execution engine is syncing, waiting for it to finish")
+				continue
 			}
 
 			log.Debug("Checking if the proposer is eligible for the slots", "slot", p.rpc.L1Beacon.GetL1HeadSlot()+1, "slot", p.rpc.L1Beacon.GetL1HeadSlot()+2)
