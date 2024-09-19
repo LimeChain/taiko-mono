@@ -652,7 +652,10 @@ func (m *SimpleTxManager) IncreaseGasPrice(ctx context.Context, tx *types.Transa
 
 	// Re-estimate gaslimit in case things have changed or a previous gaslimit estimate was wrong
 	gas, err := m.backend.EstimateGas(ctx, callArgs)
-	gas += gas // add 100% to the gas estimate to avoid underestimation
+	// Add 100% to the gas estimate to avoid underestimation which happens on every 8th tx when
+	// the L1Taiko proposeBlock function calls the verifyBlocks function and the tx fails.
+	// This is a workaround.
+	gas += gas
 	if err != nil {
 		// If this is a transaction resubmission, we sometimes see this outcome because the
 		// original tx can get included in a block just before the above call. In this case the
