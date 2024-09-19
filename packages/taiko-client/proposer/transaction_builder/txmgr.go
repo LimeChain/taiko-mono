@@ -469,14 +469,13 @@ func (m *SimpleTxManager) publishTx(ctx context.Context, tx *types.Transaction, 
 			l.Warn("TxManager closed, aborting transaction submission")
 			return tx, false
 		}
-		newTx, err := m.increaseGasPrice(ctx, tx)
+		newTx, err := m.IncreaseGasPrice(ctx, tx)
 		if err != nil {
 			l.Error("unable to increase gas", "err", err)
 			m.metr.TxPublished("bump_failed")
 			return tx, false
 		}
 		tx = newTx
-		sendState.bumpCount++
 		l = m.txLogger(tx, true)
 
 		cCtx, cancel := context.WithTimeout(ctx, m.cfg.NetworkTimeout)
@@ -621,11 +620,11 @@ func (m *SimpleTxManager) queryReceipt(ctx context.Context, txHash common.Hash, 
 	return nil
 }
 
-// increaseGasPrice returns a new transaction that is equivalent to the input transaction but with
+// IncreaseGasPrice returns a new transaction that is equivalent to the input transaction but with
 // higher fees that should satisfy geth's tx replacement rules. It also computes an updated gas
 // limit estimate. To avoid runaway price increases, fees are capped at a `feeLimitMultiplier`
 // multiple of the suggested values.
-func (m *SimpleTxManager) increaseGasPrice(ctx context.Context, tx *types.Transaction) (*types.Transaction, error) {
+func (m *SimpleTxManager) IncreaseGasPrice(ctx context.Context, tx *types.Transaction) (*types.Transaction, error) {
 	m.txLogger(tx, true).Info("bumping gas price for transaction")
 	tip, baseFee, blobBaseFee, err := m.suggestGasPriceCaps(ctx)
 	if err != nil {
@@ -653,6 +652,7 @@ func (m *SimpleTxManager) increaseGasPrice(ctx context.Context, tx *types.Transa
 
 	// Re-estimate gaslimit in case things have changed or a previous gaslimit estimate was wrong
 	gas, err := m.backend.EstimateGas(ctx, callArgs)
+	gas += gas // add 100% to the gas estimate to avoid underestimation
 	if err != nil {
 		// If this is a transaction resubmission, we sometimes see this outcome because the
 		// original tx can get included in a block just before the above call. In this case the

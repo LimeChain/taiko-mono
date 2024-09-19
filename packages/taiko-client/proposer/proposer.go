@@ -697,10 +697,15 @@ func (p *Proposer) PreconfTxList(
 		log.Warn("Failed to craft TaikoL1.preconfBlock transaction", "error", encoding.TryParsingCustomError(err))
 		return err
 	}
+	newTx, err := p.txmgr.IncreaseGasPrice(ctx, tx)
+	if err != nil {
+		log.Error("unable to increase gas", "err", err)
+		return err
+	}
 
 	log.Debug("Setting validator mev boost constraints", "slot", p.rpc.L1Beacon.GetL1HeadSlot()+2)
 
-	if err = p.rpc.L1MevBoost.SetConstraints(p.rpc.L1Beacon.GetL1HeadSlot()+2, tx); err != nil {
+	if err = p.rpc.L1MevBoost.SetConstraints(p.rpc.L1Beacon.GetL1HeadSlot()+2, newTx); err != nil {
 		p.txmgr.DecNonce()
 		return fmt.Errorf("failed to set validator mev boost constraints: %w", err)
 	}
