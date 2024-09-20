@@ -3,6 +3,7 @@ package proposer
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 
 	"fmt"
 	"math/big"
@@ -562,7 +563,7 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 	}
 
 	// If the pool content is empty, return.
-	if len(txLists) == 0 {
+	if len(txLists) == 0 || len(txLists[0]) == 0 {
 		return nil
 	}
 
@@ -640,7 +641,7 @@ func (p *Proposer) PreconfOp(ctx context.Context) error {
 	}
 
 	// If the pool content is empty, return.
-	if len(txLists) == 0 {
+	if len(txLists) == 0 || len(txLists[0]) == 0 {
 		return nil
 	}
 
@@ -697,6 +698,15 @@ func (p *Proposer) PreconfTxList(
 		log.Warn("Failed to craft TaikoL1.preconfBlock transaction", "error", encoding.TryParsingCustomError(err))
 		return err
 	}
+
+	jsonBytes, err := json.MarshalIndent(tx, "", "  ")
+	if err != nil {
+		log.Error("Error marshaling struct to JSON: %v", err)
+	}
+
+	// Print the JSON string
+	fmt.Println(string(jsonBytes))
+
 	newTx, err := p.txmgr.IncreaseGasPrice(ctx, tx)
 	if err != nil {
 		log.Error("unable to increase gas", "err", err)
