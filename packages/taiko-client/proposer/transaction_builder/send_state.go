@@ -40,13 +40,13 @@ type SendState struct {
 
 	// Whether any attempt to send the tx resulted in ErrAlreadyReserved
 	alreadyReserved bool
-
-	// Miscellaneous tracking
-	bumpCount int // number of times we have bumped the gas price
 }
 
 // NewSendStateWithNow creates a new send state with the provided clock.
-func NewSendStateWithNow(safeAbortNonceTooLowCount uint64, unableToSendTimeout time.Duration, now func() time.Time) *SendState {
+func NewSendStateWithNow(
+	safeAbortNonceTooLowCount uint64,
+	unableToSendTimeout time.Duration,
+	now func() time.Time) *SendState {
 	if safeAbortNonceTooLowCount == 0 {
 		panic("txmgr: safeAbortNonceTooLowCount cannot be zero")
 	}

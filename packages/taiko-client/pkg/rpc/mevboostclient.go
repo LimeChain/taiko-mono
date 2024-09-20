@@ -77,6 +77,7 @@ func (c *MevBoostClient) SetConstraints(slot uint64, tx *types.Transaction) erro
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)

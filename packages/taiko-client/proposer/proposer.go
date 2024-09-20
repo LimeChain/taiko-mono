@@ -214,7 +214,7 @@ func (p *Proposer) eventLoop() {
 		case <-p.l1HeadSlotTimer.C:
 			log.Info("L1 head slot", "slot", p.rpc.L1Beacon.GetL1HeadSlot())
 
-			updated, err := p.syncL1ProposerDuties(p.ctx, p.rpc.L1Beacon.GetL1HeadSlot())
+			updated, err := p.syncL1ProposerDuties(p.rpc.L1Beacon.GetL1HeadSlot())
 			if err != nil {
 				log.Error("Sync L1 proposer duties operation error", "error", err)
 				continue
@@ -241,7 +241,13 @@ func (p *Proposer) eventLoop() {
 				log.Debug("Updated L2 config and slots successfully", "L1 eligible slots", p.eligibleSlots)
 			}
 
-			log.Debug("Checking if the proposer is eligible for the slots", "slot", p.rpc.L1Beacon.GetL1HeadSlot()+1, "slot", p.rpc.L1Beacon.GetL1HeadSlot()+2)
+			log.Debug(
+				"Checking if the proposer is eligible for the slots",
+				"slot",
+				p.rpc.L1Beacon.GetL1HeadSlot()+1,
+				"slot",
+				p.rpc.L1Beacon.GetL1HeadSlot()+2,
+			)
 
 			nonce := p.txmgr.GetNonce()
 			if nonce != nil {
@@ -293,7 +299,7 @@ func (p *Proposer) eventLoop() {
 	}
 }
 
-func (p *Proposer) syncL1ProposerDuties(ctx context.Context, l1Slot uint64) (updated bool, err error) {
+func (p *Proposer) syncL1ProposerDuties(l1Slot uint64) (updated bool, err error) {
 	updated = false
 
 	if p.shouldUpdateDuties(l1Slot) {
@@ -352,7 +358,11 @@ func (p *Proposer) getBlockBySlot(slot uint64) (uint64, error) {
 }
 
 func (p *Proposer) updateProposerDuties(ctx context.Context) (bool, error) {
-	proposerDuties, err := p.rpc.L1Beacon.GetNextProposerDuties(ctx, p.rpc.L1Beacon.GetL1HeadSlot(), p.MaxProposerDutiesSlots)
+	proposerDuties, err := p.rpc.L1Beacon.GetNextProposerDuties(
+		ctx,
+		p.rpc.L1Beacon.GetL1HeadSlot(),
+		p.MaxProposerDutiesSlots,
+	)
 	if err != nil {
 		return false, fmt.Errorf("failed to get next proposer duties: %w", err)
 	}
@@ -367,7 +377,6 @@ func (p *Proposer) updateProposerDuties(ctx context.Context) (bool, error) {
 	var mu sync.Mutex
 
 	height, err := p.getBlockBySlot(p.rpc.L1Beacon.GetL1HeadSlot())
-
 	if err != nil {
 		return false, fmt.Errorf("failed to get block by slot: %w", err)
 	}
@@ -378,7 +387,13 @@ func (p *Proposer) updateProposerDuties(ctx context.Context) (bool, error) {
 		wg.Add(1)
 		go func(duty *rpc.ProposerDuty, index int) {
 			defer wg.Done()
-			isEligible, err := p.handleDuty(ctx, duty, index, p.rpc.L1Beacon.GetL1HeadSlot(), height)
+			isEligible, err := p.handleDuty(
+				ctx,
+				duty,
+				index,
+				p.rpc.L1Beacon.GetL1HeadSlot(),
+				height,
+			)
 			if err != nil {
 				errors <- err
 				return
@@ -411,7 +426,13 @@ func (p *Proposer) updateProposerDuties(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func (p *Proposer) handleDuty(ctx context.Context, duty *rpc.ProposerDuty, index int, headSlot uint64, height uint64) (bool, error) {
+func (p *Proposer) handleDuty(
+	_ context.Context,
+	duty *rpc.ProposerDuty,
+	_ int,
+	_ uint64,
+	_ uint64,
+) (bool, error) {
 	if duty.PubKey != p.validatorPublicKeyHex {
 		// TODO: Uncomment once the proposer fallback mechanism is implemented in the relayer.
 		// pubKeyBytes, err := hex.DecodeString(duty.PubKey[2:])
@@ -432,7 +453,10 @@ func (p *Proposer) handleDuty(ctx context.Context, duty *rpc.ProposerDuty, index
 
 		// 	blockNum := height + uint64(dutySlot) - headSlot
 
-		// 	fallbackSigner, err := p.rpc.SequencerRegistry.FallbackSigner(&bind.CallOpts{Context: ctx}, big.NewInt(int64(blockNum)))
+		// 	fallbackSigner, err := p.rpc.SequencerRegistry.FallbackSigner(
+		// 		&bind.CallOpts{Context: ctx},
+		// 		big.NewInt(int64(blockNum)),
+		// 	)
 		// 	if err != nil {
 		// 		return false, fmt.Errorf("failed to get FallbackSigner: %w", err)
 		// 	}
@@ -442,22 +466,22 @@ func (p *Proposer) handleDuty(ctx context.Context, duty *rpc.ProposerDuty, index
 		// 	}
 		// }
 		return false, nil
-	} else {
-		// TODO: Remove once the proposer fallback mechanism is implemented in the relayer.
-		dutySlot, err := strconv.Atoi(duty.Slot)
-		if err != nil {
-			return false, err
-		}
+	}
 
-		// Check if the dutySlot is in the same epoch as the (dutySlot - 2).
-		// This is a temp fix for the commit-boost error "can only set constraints for current epoch".
-		slotsPerEpoch := p.rpc.L1Beacon.GetSlotsPerEpoch()
-		prevL1HeadSlotEpoch := (uint64(dutySlot) - 2) / slotsPerEpoch
-		l1SlotEpoch := uint64(dutySlot) / slotsPerEpoch
+	// TODO: Remove once the proposer fallback mechanism is implemented in the relayer.
+	dutySlot, err := strconv.Atoi(duty.Slot)
+	if err != nil {
+		return false, err
+	}
 
-		if prevL1HeadSlotEpoch != l1SlotEpoch {
-			return false, nil
-		}
+	// Check if the dutySlot is in the same epoch as the (dutySlot - 2).
+	// This is a temp fix for the commit-boost error "can only set constraints for current epoch".
+	slotsPerEpoch := p.rpc.L1Beacon.GetSlotsPerEpoch()
+	prevL1HeadSlotEpoch := (uint64(dutySlot) - 2) / slotsPerEpoch
+	l1SlotEpoch := uint64(dutySlot) / slotsPerEpoch
+
+	if prevL1HeadSlotEpoch != l1SlotEpoch {
+		return false, nil
 	}
 
 	return true, nil
@@ -533,15 +557,21 @@ func (p *Proposer) updateL1HeadSlotTicker() {
 	if p.l1HeadSlotTimer != nil {
 		p.l1HeadSlotTimer.Stop()
 	}
-	nextSlotTs := p.rpc.L1Beacon.GetTimestampBySlot(p.rpc.L1Beacon.GetL1HeadSlot() + 1)
-	durationSec := int64(nextSlotTs) - time.Now().UTC().Unix()
+	nextSlotTS := p.rpc.L1Beacon.GetTimestampBySlot(p.rpc.L1Beacon.GetL1HeadSlot() + 1)
+	durationSec := int64(nextSlotTS) - time.Now().UTC().Unix()
 	secPerSlot := p.rpc.L1Beacon.GetSecondsPerSlot()
 
 	if durationSec <= 0 {
 		durationSec = int64(secPerSlot) - AbsInt(durationSec)
 	}
 
-	log.Debug("Setting L1 head slot timer", "next L1 head slot", p.rpc.L1Beacon.GetL1HeadSlot()+1, "time to slot", durationSec)
+	log.Debug(
+		"Setting L1 head slot timer",
+		"next L1 head slot",
+		p.rpc.L1Beacon.GetL1HeadSlot()+1,
+		"time to slot",
+		durationSec,
+	)
 
 	duration := time.Duration(durationSec) * time.Second
 	p.l1HeadSlotTimer = time.NewTimer(duration)
@@ -570,7 +600,8 @@ func (p *Proposer) ProposeOp(ctx context.Context) error {
 
 	g, gCtx := errgroup.WithContext(ctx)
 	// Propose all L2 transactions lists.
-	for _, txs := range txLists[:utils.Min(p.MaxProposedTxListsPerEpoch, uint64(len(txLists)))] {
+	for _, txsList := range txLists[:utils.Min(p.MaxProposedTxListsPerEpoch, uint64(len(txLists)))] {
+		txs := txsList
 		g.Go(func() error {
 			txListBytes, err := rlp.EncodeToBytes(txs)
 			if err != nil {
@@ -648,7 +679,8 @@ func (p *Proposer) PreconfOp(ctx context.Context) error {
 
 	g, gCtx := errgroup.WithContext(ctx)
 	// Propose all L2 transactions lists.
-	for _, txs := range txLists[:utils.Min(p.MaxProposedTxListsPerEpoch, uint64(len(txLists)))] {
+	for _, txsList := range txLists[:utils.Min(p.MaxProposedTxListsPerEpoch, uint64(len(txLists)))] {
+		txs := txsList
 		g.Go(func() error {
 			txListBytes, err := rlp.EncodeToBytes(txs)
 			if err != nil {

@@ -155,7 +155,10 @@ func getConfigSpec(ctx context.Context, c *beacon.Client) (*config.GetSpecRespon
 	return fsr, nil
 }
 
-func (c *BeaconClient) GetNextProposerDuties(ctx context.Context, headSlot uint64, maxSlots uint64) ([]*ProposerDuty, error) {
+func (c *BeaconClient) GetNextProposerDuties(
+	ctx context.Context,
+	headSlot uint64,
+	maxSlots uint64) ([]*ProposerDuty, error) {
 	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, c.timeout)
 	nextDuties := make([]*ProposerDuty, 0)
 	defer cancel()

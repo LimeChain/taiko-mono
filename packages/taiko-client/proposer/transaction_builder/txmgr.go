@@ -133,7 +133,12 @@ type SimpleTxManager struct {
 }
 
 // NewSimpleTxManager initializes a new SimpleTxManager with the passed Config.
-func NewSimpleTxManager(name string, l log.Logger, m metrics.TxMetricer, cfg txmgr.CLIConfig) (*SimpleTxManager, error) {
+func NewSimpleTxManager(
+	name string,
+	l log.Logger,
+	m metrics.TxMetricer,
+	cfg txmgr.CLIConfig,
+) (*SimpleTxManager, error) {
 	conf, err := txmgr.NewConfig(cfg, l)
 	if err != nil {
 		return nil, err
@@ -142,7 +147,12 @@ func NewSimpleTxManager(name string, l log.Logger, m metrics.TxMetricer, cfg txm
 }
 
 // NewSimpleTxManager initializes a new SimpleTxManager with the passed Config.
-func NewSimpleTxManagerFromConfig(name string, l log.Logger, m metrics.TxMetricer, conf txmgr.Config) (*SimpleTxManager, error) {
+func NewSimpleTxManagerFromConfig(
+	name string,
+	l log.Logger,
+	m metrics.TxMetricer,
+	conf txmgr.Config,
+) (*SimpleTxManager, error) {
 	if err := conf.Check(); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
@@ -356,7 +366,11 @@ func MakeSidecar(blobs []*eth.Blob) (*types.BlobTxSidecar, []common.Hash, error)
 		sidecar.Commitments = append(sidecar.Commitments, commitment)
 		proof, err := kzg4844.ComputeBlobProof(rawBlob, commitment)
 		if err != nil {
-			return nil, nil, fmt.Errorf("cannot compute KZG proof for fast commitment verification of blob %d in tx candidate: %w", i, err)
+			return nil, nil, fmt.Errorf(
+				"cannot compute KZG proof for fast commitment verification of blob %d in tx candidate: %w",
+				i,
+				err,
+			)
 		}
 		sidecar.Proofs = append(sidecar.Proofs, proof)
 		blobHashes = append(blobHashes, eth.KZGToVersionedHash(commitment))
@@ -439,14 +453,14 @@ func (m *SimpleTxManager) sendTx(ctx context.Context, tx *types.Transaction) err
 	defer cancel()
 
 	sendState := NewSendState(m.cfg.SafeAbortNonceTooLowCount, m.cfg.TxNotInMempoolTimeout)
-	publish := func(tx *types.Transaction, bumpFees bool) *types.Transaction {
+	publish := func(tx *types.Transaction) *types.Transaction {
 		wg.Add(1)
-		tx, _ = m.publishTx(ctx, tx, sendState, bumpFees)
+		tx, _ = m.publishTx(ctx, tx, sendState)
 		wg.Done()
 		return tx
 	}
 
-	tx = publish(tx, false)
+	tx = publish(tx)
 
 	if err := sendState.CriticalError(); err != nil {
 		m.txLogger(tx, false).Warn("Aborting transaction submission", "err", err)
@@ -458,7 +472,11 @@ func (m *SimpleTxManager) sendTx(ctx context.Context, tx *types.Transaction) err
 // publishTx publishes the transaction to the transaction pool. If it receives any underpriced errors
 // it will bump the fees and retry.
 // Returns the latest fee bumped tx, and a boolean indicating whether the tx was sent or not
-func (m *SimpleTxManager) publishTx(ctx context.Context, tx *types.Transaction, sendState *SendState, bumpFeesImmediately bool) (*types.Transaction, bool) {
+func (m *SimpleTxManager) publishTx(
+	ctx context.Context,
+	tx *types.Transaction,
+	sendState *SendState,
+) (*types.Transaction, bool) {
 	l := m.txLogger(tx, true)
 
 	l.Info("Publishing transaction", "tx", tx.Hash())
@@ -522,102 +540,6 @@ func (m *SimpleTxManager) publishTx(ctx context.Context, tx *types.Transaction, 
 		// on non-underpriced error return immediately; will retry on next resubmission timeout
 		return tx, false
 	}
-}
-
-// waitForTx calls waitMined, and then sends the receipt to receiptChan in a non-blocking way if a receipt is found
-// for the transaction. It should be called in a separate goroutine.
-func (m *SimpleTxManager) waitForTx(ctx context.Context, tx *types.Transaction, sendState *SendState, receiptChan chan *types.Receipt) {
-	t := time.Now()
-	// Poll for the transaction to be ready & then send the result to receiptChan
-	receipt, err := m.waitMined(ctx, tx, sendState)
-	if err != nil {
-		// this will happen if the tx was successfully replaced by a tx with bumped fees
-		m.txLogger(tx, true).Info("Transaction receipt not found", "err", err)
-		return
-	}
-	select {
-	case receiptChan <- receipt:
-		m.metr.RecordTxConfirmationLatency(time.Since(t).Milliseconds())
-	default:
-	}
-}
-
-// waitMined waits for the transaction to be mined or for the context to be cancelled.
-func (m *SimpleTxManager) waitMined(ctx context.Context, tx *types.Transaction, sendState *SendState) (*types.Receipt, error) {
-	txHash := tx.Hash()
-	queryTicker := time.NewTicker(m.cfg.ReceiptQueryInterval)
-	defer queryTicker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-queryTicker.C:
-			if receipt := m.queryReceipt(ctx, txHash, sendState); receipt != nil {
-				return receipt, nil
-			}
-		}
-	}
-}
-
-// queryReceipt queries for the receipt and returns the receipt if it has passed the confirmation depth
-func (m *SimpleTxManager) queryReceipt(ctx context.Context, txHash common.Hash, sendState *SendState) *types.Receipt {
-	ctx, cancel := context.WithTimeout(ctx, m.cfg.NetworkTimeout)
-	defer cancel()
-	receipt, err := m.backend.TransactionReceipt(ctx, txHash)
-	if errors.Is(err, ethereum.NotFound) {
-		sendState.TxNotMined(txHash)
-		m.l.Trace("Transaction not yet mined", "tx", txHash)
-		return nil
-	} else if err != nil {
-		m.metr.RPCError()
-		m.l.Info("Receipt retrieval failed", "tx", txHash, "err", err)
-		return nil
-	} else if receipt == nil {
-		m.metr.RPCError()
-		m.l.Warn("Receipt and error are both nil", "tx", txHash)
-		return nil
-	}
-
-	// Receipt is confirmed to be valid from this point on
-	sendState.TxMined(txHash)
-
-	txHeight := receipt.BlockNumber.Uint64()
-	tip, err := m.backend.HeaderByNumber(ctx, nil)
-	if err != nil {
-		m.metr.RPCError()
-		m.l.Error("Unable to fetch tip", "err", err)
-		return nil
-	}
-
-	m.metr.RecordBaseFee(tip.BaseFee)
-	if tip.ExcessBlobGas != nil {
-		blobFee := eip4844.CalcBlobFee(*tip.ExcessBlobGas)
-		m.metr.RecordBlobBaseFee(blobFee)
-	}
-
-	m.l.Debug("Transaction mined, checking confirmations", "tx", txHash,
-		"block", eth.ReceiptBlockID(receipt), "tip", eth.HeaderBlockID(tip),
-		"numConfirmations", m.cfg.NumConfirmations)
-
-	// The transaction is considered confirmed when
-	// txHeight+numConfirmations-1 <= tipHeight. Note that the -1 is
-	// needed to account for the fact that confirmations have an
-	// inherent off-by-one, i.e. when using 1 confirmation the
-	// transaction should be confirmed when txHeight is equal to
-	// tipHeight. The equation is rewritten in this form to avoid
-	// underflows.
-	tipHeight := tip.Number.Uint64()
-	if txHeight+m.cfg.NumConfirmations <= tipHeight+1 {
-		m.l.Info("Transaction confirmed", "tx", txHash,
-			"block", eth.ReceiptBlockID(receipt),
-			"effectiveGasPrice", receipt.EffectiveGasPrice)
-		return receipt
-	}
-
-	// Safe to subtract since we know the LHS above is greater.
-	confsRemaining := (txHeight + m.cfg.NumConfirmations) - (tipHeight + 1)
-	m.l.Debug("Transaction not yet confirmed", "tx", txHash, "confsRemaining", confsRemaining)
-	return nil
 }
 
 // IncreaseGasPrice returns a new transaction that is equivalent to the input transaction but with
@@ -853,12 +775,11 @@ func updateFees(oldTip, oldFeeCap, newTip, newBaseFee *big.Int, isBlobTx bool, l
 		// not enough of the feecap may be dedicated to paying the base fee.
 		lgr.Debug("Using threshold tip and recalculated feecap")
 		return thresholdTip, calcGasFeeCap(newBaseFee, thresholdTip)
-
-	} else {
-		// TODO(CLI-3713): Should we skip the bump in this case?
-		lgr.Debug("Using threshold tip and threshold feecap")
-		return thresholdTip, thresholdFeeCap
 	}
+
+	// TODO(CLI-3713): Should we skip the bump in this case?
+	lgr.Debug("Using threshold tip and threshold feecap")
+	return thresholdTip, thresholdFeeCap
 }
 
 // calcGasFeeCap deterministically computes the recommended gas fee cap given
@@ -875,11 +796,11 @@ func calcGasFeeCap(baseFee, gasTipCap *big.Int) *big.Int {
 // calcBlobFeeCap computes a suggested blob fee cap that is twice the current header's blob base fee
 // value, with a minimum value of minBlobTxFee.
 func calcBlobFeeCap(blobBaseFee *big.Int) *big.Int {
-	cap := new(big.Int).Mul(blobBaseFee, two)
-	if cap.Cmp(minBlobTxFee) < 0 {
-		cap.Set(minBlobTxFee)
+	feeCap := new(big.Int).Mul(blobBaseFee, two)
+	if feeCap.Cmp(minBlobTxFee) < 0 {
+		feeCap.Set(minBlobTxFee)
 	}
-	return cap
+	return feeCap
 }
 
 // errStringMatch returns true if err.Error() is a substring in target.Error() or if both are nil.
@@ -897,19 +818,19 @@ func errStringMatch(err, target error) bool {
 func finishBlobTx(message *types.BlobTx, chainID, tip, fee, blobFee, value *big.Int) error {
 	var o bool
 	if message.ChainID, o = uint256.FromBig(chainID); o {
-		return fmt.Errorf("ChainID overflow")
+		return fmt.Errorf("chainID overflow")
 	}
 	if message.GasTipCap, o = uint256.FromBig(tip); o {
-		return fmt.Errorf("GasTipCap overflow")
+		return fmt.Errorf("gasTipCap overflow")
 	}
 	if message.GasFeeCap, o = uint256.FromBig(fee); o {
-		return fmt.Errorf("GasFeeCap overflow")
+		return fmt.Errorf("gasFeeCap overflow")
 	}
 	if message.BlobFeeCap, o = uint256.FromBig(blobFee); o {
-		return fmt.Errorf("BlobFeeCap overflow")
+		return fmt.Errorf("blobFeeCap overflow")
 	}
 	if message.Value, o = uint256.FromBig(value); o {
-		return fmt.Errorf("Value overflow")
+		return fmt.Errorf("value overflow")
 	}
 	return nil
 }
