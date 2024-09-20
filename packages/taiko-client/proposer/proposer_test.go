@@ -112,7 +112,7 @@ func (s *ProposerTestSuite) TestProposeTxLists() {
 	cfg := s.p.Config
 
 	txBuilder := builder.NewBlobTransactionBuilder(
-		p.rpc,
+		p.RPC,
 		p.L1ProposerPrivKey,
 		p.proverSelector,
 		p.Config.L1BlockBuilderTip,
@@ -211,7 +211,7 @@ func (s *ProposerTestSuite) TestProposeOp() {
 	// Propose txs in L2 execution engine's mempool
 	sink := make(chan *bindings.TaikoL1ClientBlockProposed)
 
-	sub, err := s.p.rpc.TaikoL1.WatchBlockProposed(nil, sink, nil, nil)
+	sub, err := s.p.RPC.TaikoL1.WatchBlockProposed(nil, sink, nil, nil)
 	s.Nil(err)
 	defer func() {
 		sub.Unsubscribe()
@@ -219,7 +219,7 @@ func (s *ProposerTestSuite) TestProposeOp() {
 	}()
 
 	to := common.BytesToAddress(testutils.RandomBytes(32))
-	_, err = testutils.SendDynamicFeeTx(s.p.rpc.L2, s.TestAddrPrivKey, &to, common.Big1, nil)
+	_, err = testutils.SendDynamicFeeTx(s.p.RPC.L2, s.TestAddrPrivKey, &to, common.Big1, nil)
 	s.Nil(err)
 
 	s.Nil(s.p.ProposeOp(context.Background()))
@@ -228,11 +228,11 @@ func (s *ProposerTestSuite) TestProposeOp() {
 
 	s.Equal(event.Meta.Coinbase, s.p.L2SuggestedFeeRecipient)
 
-	_, isPending, err := s.p.rpc.L1.TransactionByHash(context.Background(), event.Raw.TxHash)
+	_, isPending, err := s.p.RPC.L1.TransactionByHash(context.Background(), event.Raw.TxHash)
 	s.Nil(err)
 	s.False(isPending)
 
-	receipt, err := s.p.rpc.L1.TransactionReceipt(context.Background(), event.Raw.TxHash)
+	receipt, err := s.p.RPC.L1.TransactionReceipt(context.Background(), event.Raw.TxHash)
 	s.Nil(err)
 	s.Equal(types.ReceiptStatusSuccessful, receipt.Status)
 }

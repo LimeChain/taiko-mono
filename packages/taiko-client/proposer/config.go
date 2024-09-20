@@ -58,6 +58,10 @@ func NewConfigFromCliContext(c *cli.Context) (*Config, error) {
 		return nil, fmt.Errorf("invalid L1 proposer private key: %w", err)
 	}
 
+	if !c.IsSet(flags.L1BeaconEndpoint.Name) {
+		return nil, fmt.Errorf("empty L1 beacon endpoint")
+	}
+
 	l2SuggestedFeeRecipient := c.String(flags.L2SuggestedFeeRecipient.Name)
 	if !common.IsHexAddress(l2SuggestedFeeRecipient) {
 		return nil, fmt.Errorf("invalid L2 suggested fee recipient address: %s", l2SuggestedFeeRecipient)

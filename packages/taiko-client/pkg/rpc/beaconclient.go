@@ -14,6 +14,8 @@ import (
 	"github.com/prysmaticlabs/prysm/v4/api/client/beacon"
 	"github.com/prysmaticlabs/prysm/v4/beacon-chain/rpc/eth/blob"
 	"github.com/prysmaticlabs/prysm/v4/beacon-chain/rpc/eth/config"
+
+	"github.com/taikoxyz/taiko-mono/packages/taiko-client/types"
 )
 
 var (
@@ -24,33 +26,6 @@ var (
 	getConfigSpecPath        = "/eth/v1/config/spec"
 )
 
-type ConfigSpec struct {
-	SecondsPerSlot string `json:"SECONDS_PER_SLOT"`
-	SlotsPerEpoch  string `json:"SLOTS_PER_EPOCH"`
-}
-
-type GenesisResponse struct {
-	Data struct {
-		GenesisTime string `json:"genesis_time"`
-	} `json:"data"`
-}
-
-type GetNodeSyncingResponse struct {
-	Data struct {
-		HeadSlot string `json:"head_slot"`
-	} `json:"data"`
-}
-
-type ProposerDutiesResponse struct {
-	Data []*ProposerDuty `json:"data"`
-}
-
-type ProposerDuty struct {
-	PubKey         string `json:"pubkey"`
-	ValidatorIndex string `json:"validator_index"`
-	Slot           string `json:"slot"`
-}
-
 type BeaconClient struct {
 	*beacon.Client
 
@@ -58,6 +33,16 @@ type BeaconClient struct {
 	genesisTime    uint64
 	secondsPerSlot uint64
 	slotsPerEpoch  uint64
+}
+
+type IBeaconClient interface {
+	GetBlobs(ctx context.Context, time uint64) ([]*blob.Sidecar, error)
+	GetNextProposerDuties(ctx context.Context, headSlot uint64, maxSlots uint64) ([]*types.ProposerDuty, error)
+	GetL1HeadSlot() uint64
+	GetTimestampBySlot(slot uint64) uint64
+	GetGenesisTimestamp() uint64
+	GetSecondsPerSlot() uint64
+	GetSlotsPerEpoch() uint64
 }
 
 // NewBeaconClient returns a new beacon client.
@@ -71,7 +56,7 @@ func NewBeaconClient(endpoint string, timeout time.Duration) (*BeaconClient, err
 	defer cancel()
 
 	// Get the genesis time.
-	var genesisDetail *GenesisResponse
+	var genesisDetail *types.GenesisResponse
 	resBytes, err := cli.Get(ctx, cli.BaseURL().Path+genesisRequestURL)
 	if err != nil {
 		return nil, err
@@ -158,9 +143,9 @@ func getConfigSpec(ctx context.Context, c *beacon.Client) (*config.GetSpecRespon
 func (c *BeaconClient) GetNextProposerDuties(
 	ctx context.Context,
 	headSlot uint64,
-	maxSlots uint64) ([]*ProposerDuty, error) {
+	maxSlots uint64) ([]*types.ProposerDuty, error) {
 	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, c.timeout)
-	nextDuties := make([]*ProposerDuty, 0)
+	nextDuties := make([]*types.ProposerDuty, 0)
 	defer cancel()
 
 	epochBegin := headSlot / c.slotsPerEpoch
@@ -173,7 +158,7 @@ func (c *BeaconClient) GetNextProposerDuties(
 		return nil, err
 	}
 
-	var duties *ProposerDutiesResponse
+	var duties *types.ProposerDutiesResponse
 	if err = json.Unmarshal(resBytes, &duties); err != nil {
 		return nil, err
 	}
@@ -185,7 +170,7 @@ func (c *BeaconClient) GetNextProposerDuties(
 		if err != nil {
 			log.Error("Requesting duties for epochEnd", "epochEnd", epochEnd, "error", err)
 		} else {
-			var duties *ProposerDutiesResponse
+			var duties *types.ProposerDutiesResponse
 			if err = json.Unmarshal(resBytes, &duties); err != nil {
 				return nil, err
 			}
@@ -200,8 +185,12 @@ func (c *BeaconClient) GetNextProposerDuties(
 	return nextDuties, nil
 }
 
-func (c *BeaconClient) filterProposerDuties(duties []*ProposerDuty, headSlot uint64, maxSlots uint64) []*ProposerDuty {
-	filteredDuties := make([]*ProposerDuty, 0)
+func (c *BeaconClient) filterProposerDuties(
+	duties []*types.ProposerDuty,
+	headSlot uint64,
+	maxSlots uint64,
+) []*types.ProposerDuty {
+	filteredDuties := make([]*types.ProposerDuty, 0)
 	for _, duty := range duties {
 		slot, err := strconv.Atoi(duty.Slot)
 		if err != nil {

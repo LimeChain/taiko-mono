@@ -40,12 +40,13 @@ check_env "L1_PROVER_PRIVATE_KEY"
 check_env "TREASURY"
 check_env "JWT_SECRET"
 check_env "VERBOSITY"
+check_env "SEQUENCER_REGISTRY"
 
 RUN_TESTS=${RUN_TESTS:-false}
 PACKAGE=${PACKAGE:-...}
 
 if [ "$RUN_TESTS" == "true" ]; then
-    go test -v -p=1 ./"$PACKAGE" -coverprofile=coverage.out -covermode=atomic -timeout=700s
+    go test -v -p=1 ./"$PACKAGE" -coverprofile=coverage.out -covermode=atomic -timeout=700s -failfast
 else
     echo "💻 Local dev net started"
 fi

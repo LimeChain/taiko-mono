@@ -24,6 +24,11 @@ type Constraints struct {
 	SlotNumber uint64   `json:"slot_number"`
 }
 
+type IMevBoostClient interface {
+	SetConstraints(slot uint64, tx *types.Transaction) error
+	GetValidatorPubKeyHex() (string, error)
+}
+
 // MevBoostClient represents a client for interacting with the MEV Boost server.
 type MevBoostClient struct {
 	baseURL string

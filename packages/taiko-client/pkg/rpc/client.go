@@ -20,13 +20,13 @@ const (
 type Client struct {
 	// Geth ethclient clients
 	L1           *EthClient
-	L1MevBoost   *MevBoostClient
+	L1MevBoost   IMevBoostClient
 	L2           *EthClient
 	L2CheckPoint *EthClient
 	// Geth Engine API clients
 	L2Engine *EngineClient
 	// Beacon clients
-	L1Beacon *BeaconClient
+	L1Beacon IBeaconClient
 	// Protocol contracts clients
 	TaikoL1                *bindings.TaikoL1Client
 	TaikoL2                *bindings.TaikoL2Client
@@ -92,9 +92,9 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 			}
 		}
 
+		// NOTE: when running tests, we do not have a L1 mev-boost endpoint.
 		if cfg.L1MevBoostEndpoint != "" && os.Getenv("RUN_TESTS") == "" {
-			l1MevBoost, err = NewMevBoostClient(cfg.L1MevBoostEndpoint, cfg.Timeout)
-			if err != nil {
+			if l1MevBoost, err = NewMevBoostClient(cfg.L1MevBoostEndpoint, cfg.Timeout); err != nil {
 				log.Error("Failed to connect to L1 MEV boost endpoint, retrying", "endpoint", cfg.L1MevBoostEndpoint, "err", err)
 				return err
 			}

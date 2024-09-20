@@ -60,6 +60,7 @@ func (s *ClientTestSuite) SetupTest() {
 		L2Endpoint:                    os.Getenv("L2_EXECUTION_ENGINE_WS_ENDPOINT"),
 		TaikoL1Address:                common.HexToAddress(os.Getenv("TAIKO_L1_ADDRESS")),
 		TaikoL2Address:                common.HexToAddress(os.Getenv("TAIKO_L2_ADDRESS")),
+		SequencerRegistryAddress:      common.HexToAddress(os.Getenv("SEQUENCER_REGISTRY")),
 		ProverSetAddress:              common.HexToAddress(os.Getenv("PROVER_SET_ADDRESS")),
 		TaikoTokenAddress:             common.HexToAddress(os.Getenv("TAIKO_TOKEN_ADDRESS")),
 		GuardianProverMajorityAddress: common.HexToAddress(os.Getenv("GUARDIAN_PROVER_CONTRACT_ADDRESS")),
