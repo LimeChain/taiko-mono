@@ -1,6 +1,7 @@
 package testutils
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"math/big"
@@ -13,6 +14,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/txmgr/metrics"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/stretchr/testify/suite"
@@ -108,6 +110,66 @@ func (s *ClientTestSuite) SetupTest() {
 		s.setAllowance(l1ProverPrivKey)
 		s.setAllowance(ownerPrivKey)
 		s.setAllowanceForProverSet(ownerPrivKey)
+
+		// SequencerRegistry: register
+		opts, err = bind.NewKeyedTransactorWithChainID(ownerPrivKey, rpcCli.L1.ChainID)
+		s.Nil(err)
+
+		fnSelector := [4]byte{0xe6, 0xe9, 0x11, 0x57}
+		valAddress := crypto.PubkeyToAddress(testAddrPrivKey.PublicKey)
+		packed := encodePacked(
+			[]byte{0x1},
+			common.HexToAddress(os.Getenv("SEQUENCER_REGISTRY")).Bytes(),
+			math.U256Bytes(rpcCli.L1.ChainID),
+			math.U256Bytes(big.NewInt(0)), fnSelector[:], valAddress.Bytes(),
+			[]byte{},
+		)
+
+		authHash := crypto.Keccak256(packed)
+		var authHashArray [32]byte
+		copy(authHashArray[:], authHash)
+
+		_, err = rpcCli.SequencerRegistry.Register(
+			opts,
+			valAddress,
+			[]byte{},
+			authHashArray,
+			[]byte{},
+			bindings.ISequencerRegistryValidatorProof{
+				CurrentEpoch:    0,
+				ActivationEpoch: 0,
+				ExitEpoch:       0,
+				ValidatorIndex:  big.NewInt(0),
+				Slashed:         false,
+				ProofSlot:       big.NewInt(0),
+				SszProof:        []byte{},
+			},
+		)
+		s.Nil(err)
+
+		// SequencerRegistry: activate
+		opts, err = bind.NewKeyedTransactorWithChainID(ownerPrivKey, rpcCli.L1.ChainID)
+		s.Nil(err)
+
+		opts.Value = big.NewInt(1e18) // Staking 1 ETH
+
+		pubkey := make([]byte, 48)
+		pubkey[31] = 0x01
+
+		_, err = rpcCli.TaikoL1.StakeSequencer(
+			opts,
+			pubkey,
+			bindings.ISequencerRegistryValidatorProof{
+				CurrentEpoch:    0,
+				ActivationEpoch: 0,
+				ExitEpoch:       0,
+				ValidatorIndex:  big.NewInt(0),
+				Slashed:         false,
+				ProofSlot:       big.NewInt(0),
+				SszProof:        []byte{},
+			},
+		)
+		s.Nil(err)
 
 		t, err := txmgr.NewSimpleTxManager(
 			"enableProver",
@@ -269,4 +331,8 @@ func (s *ClientTestSuite) RevertL1Snapshot(snapshotID string) {
 	var revertRes bool
 	s.Nil(s.RPCClient.L1.CallContext(context.Background(), &revertRes, "evm_revert", snapshotID))
 	s.True(revertRes)
+}
+
+func encodePacked(input ...[]byte) []byte {
+	return bytes.Join(input, nil)
 }
