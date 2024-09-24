@@ -220,9 +220,11 @@ func (p *Proposer) eventLoop() {
 		case <-p.ctx.Done():
 			return
 		case <-p.l1HeadSlotTimer.C:
-			log.Info("L1 head slot", "slot", p.RPC.L1Beacon.GetL1HeadSlot())
+			l1HeadSlot := p.RPC.L1Beacon.GetL1HeadSlot()
 
-			updated, err := p.syncL1ProposerDuties(p.RPC.L1Beacon.GetL1HeadSlot())
+			log.Info("L1 head slot", "slot", l1HeadSlot)
+
+			updated, err := p.syncL1ProposerDuties(l1HeadSlot)
 			if err != nil {
 				log.Error("Sync L1 proposer duties operation error", "error", err)
 				continue
@@ -252,9 +254,9 @@ func (p *Proposer) eventLoop() {
 			log.Debug(
 				"Checking if the proposer is eligible for the slots",
 				"slot",
-				p.RPC.L1Beacon.GetL1HeadSlot()+1,
+				l1HeadSlot+1,
 				"slot",
-				p.RPC.L1Beacon.GetL1HeadSlot()+2,
+				l1HeadSlot+2,
 			)
 
 			nonce := p.txmgr.GetNonce()
@@ -272,14 +274,14 @@ func (p *Proposer) eventLoop() {
 				}
 			}
 
-			isEligible, err := p.isEligibleForL1Slot(p.RPC.L1Beacon.GetL1HeadSlot() + 1)
+			isEligible, err := p.isEligibleForL1Slot(l1HeadSlot + 1)
 			if err != nil {
 				log.Error("Failed to check if the proposer is eligible for the L1 slot", "error", err)
 				continue
 			}
 			if !isEligible {
 				metrics.ProposerProposeEpochCounter.Add(1)
-				log.Debug("Proposer IS NOT eligible for the L1 slot", "slot", p.RPC.L1Beacon.GetL1HeadSlot()+1)
+				log.Debug("Proposer IS NOT eligible for the L1 slot", "slot", l1HeadSlot+1)
 
 				// Attempt a propose operation
 				if err := p.ProposeOp(p.ctx); err != nil {
@@ -288,16 +290,16 @@ func (p *Proposer) eventLoop() {
 				}
 			}
 
-			isEligible, err = p.isEligibleForL1Slot(p.RPC.L1Beacon.GetL1HeadSlot() + 2)
+			isEligible, err = p.isEligibleForL1Slot(l1HeadSlot + 2)
 			if err != nil {
 				log.Error("Failed to check if the proposer is eligible for the L1 slot", "error", err)
 				continue
 			}
 			if isEligible {
-				time.Sleep(p.PreconfDelay * time.Second)
+				p.preconfDelay(l1HeadSlot)
 
 				metrics.ProposerProposeEpochCounter.Add(1)
-				log.Debug("Proposer IS eligible for the L1 slot", "slot", p.RPC.L1Beacon.GetL1HeadSlot()+2)
+				log.Debug("Proposer IS eligible for the L1 slot", "slot", l1HeadSlot+2)
 
 				// Attempt a preconf operation
 				if err := p.PreconfOp(p.ctx); err != nil {
@@ -307,6 +309,13 @@ func (p *Proposer) eventLoop() {
 			}
 		}
 	}
+}
+
+func (p *Proposer) preconfDelay(l1HeadSlot uint64) {
+	currentSlotTS := p.RPC.L1Beacon.GetTimestampBySlot(l1HeadSlot)
+	secsInSlot := time.Now().UTC().Unix() - int64(currentSlotTS)
+	durationSec := int64(p.PreconfDelay) - AbsInt(secsInSlot)
+	time.Sleep(time.Duration(durationSec) * time.Second)
 }
 
 func (p *Proposer) syncL1ProposerDuties(l1Slot uint64) (updated bool, err error) {
