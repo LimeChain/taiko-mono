@@ -205,6 +205,7 @@ func (s *ProposerTestSuite) TestProposeOpNoEmptyBlock() {
 	p.LocalAddressesOnly = false
 	p.MinGasUsed = blockMinGasLimit
 	p.MinTxListBytes = blockMinTxListBytes
+	p.PreconfDelay = time.Second
 	s.Nil(p.ProposeOp(context.Background()))
 }
 

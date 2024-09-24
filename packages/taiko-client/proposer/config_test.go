@@ -27,6 +27,7 @@ var (
 	taikoToken         = os.Getenv("TAIKO_TOKEN_ADDRESS")
 	proverEndpoints    = "http://localhost:9876,http://localhost:1234"
 	tierFee            = 100.0
+	preconfDelay       = "8s"
 	rpcTimeout         = "5s"
 )
 
@@ -49,6 +50,7 @@ func (s *ProposerTestSuite) TestNewConfigFromCliContext() {
 		s.Equal(taikoToken, c.TaikoTokenAddress.String())
 		s.Equal(goldenTouchAddress, crypto.PubkeyToAddress(c.L1ProposerPrivKey.PublicKey))
 		s.Equal(goldenTouchAddress, c.L2SuggestedFeeRecipient)
+		s.Equal(float64(8), c.PreconfDelay.Seconds())
 		s.Equal(1, len(c.LocalAddresses))
 		s.Equal(goldenTouchAddress, c.LocalAddresses[0])
 		s.Equal(5*time.Second, c.Timeout)
@@ -80,6 +82,7 @@ func (s *ProposerTestSuite) TestNewConfigFromCliContext() {
 		"--" + flags.TaikoTokenAddress.Name, taikoToken,
 		"--" + flags.L1ProposerPrivKey.Name, encoding.GoldenTouchPrivKey,
 		"--" + flags.L2SuggestedFeeRecipient.Name, goldenTouchAddress.Hex(),
+		"--" + flags.PreconfDelay.Name, preconfDelay,
 		"--" + flags.TxPoolLocals.Name, goldenTouchAddress.Hex(),
 		"--" + flags.RPCTimeout.Name, rpcTimeout,
 		"--" + flags.TxGasLimit.Name, "100000",
@@ -107,6 +110,7 @@ func (s *ProposerTestSuite) TestNewConfigFromCliContextL2RecipErr() {
 	s.ErrorContains(app.Run([]string{
 		"TestNewConfigFromCliContextL2RecipErr",
 		"--" + flags.L1ProposerPrivKey.Name, encoding.GoldenTouchPrivKey,
+		"--" + flags.PreconfDelay.Name, preconfDelay,
 		"--" + flags.L2SuggestedFeeRecipient.Name, "notAnAddress",
 	}), "invalid L2 suggested fee recipient address")
 }
@@ -120,7 +124,9 @@ func (s *ProposerTestSuite) TestNewConfigFromCliContextTxPoolLocalsErr() {
 	s.ErrorContains(app.Run([]string{
 		"TestNewConfigFromCliContextTxPoolLocalsErr",
 		"--" + flags.L1ProposerPrivKey.Name, encoding.GoldenTouchPrivKey,
+		"--" + flags.PreconfDelay.Name, preconfDelay,
 		"--" + flags.L2SuggestedFeeRecipient.Name, goldenTouchAddress.Hex(),
+		"--" + flags.PreconfDelay.Name, preconfDelay,
 		"--" + flags.TxPoolLocals.Name, "notAnAddress",
 	}), "invalid account in --txpool.locals")
 }
@@ -138,6 +144,7 @@ func (s *ProposerTestSuite) SetupApp() *cli.App {
 		&cli.StringFlag{Name: flags.TaikoTokenAddress.Name},
 		&cli.StringFlag{Name: flags.L1ProposerPrivKey.Name},
 		&cli.StringFlag{Name: flags.L2SuggestedFeeRecipient.Name},
+		&cli.StringFlag{Name: flags.PreconfDelay.Name},
 		&cli.StringFlag{Name: flags.TxPoolLocals.Name},
 		&cli.StringFlag{Name: flags.ProverEndpoints.Name},
 		&cli.Uint64Flag{Name: flags.OptimisticTierFee.Name},

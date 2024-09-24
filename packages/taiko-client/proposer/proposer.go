@@ -92,7 +92,7 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 		return fmt.Errorf("initialize rpc clients error: %w", err)
 	}
 
-	if _, ok := p.RPC.L1MevBoost.(*rpc.MevBoostClient); !ok {
+	if _, ok := p.RPC.L1MevBoost.(*rpc.MevBoostClient); ok {
 		if p.validatorPublicKeyHex, err = p.RPC.L1MevBoost.GetValidatorPubKeyHex(); err != nil {
 			return fmt.Errorf("failed to get validator pubkey hex error: %w", err)
 		}
@@ -182,6 +182,11 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 
 	if !isEligible {
 		return fmt.Errorf("the validator is not eligible signer, pubkey: %s", p.validatorPublicKeyHex)
+	}
+
+	// Wait until L2 execution engine is synced at first.
+	if err := p.RPC.WaitTillL2ExecutionEngineSynced(ctx); err != nil {
+		return fmt.Errorf("failed to wait until L2 execution engine synced: %w", err)
 	}
 
 	log.Info("Proposer initialized successfully")
@@ -289,6 +294,8 @@ func (p *Proposer) eventLoop() {
 				continue
 			}
 			if isEligible {
+				time.Sleep(p.PreconfDelay * time.Second)
+
 				metrics.ProposerProposeEpochCounter.Add(1)
 				log.Debug("Proposer IS eligible for the L1 slot", "slot", p.RPC.L1Beacon.GetL1HeadSlot()+2)
 
