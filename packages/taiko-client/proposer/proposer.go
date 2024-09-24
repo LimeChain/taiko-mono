@@ -314,8 +314,10 @@ func (p *Proposer) eventLoop() {
 func (p *Proposer) preconfDelay(l1HeadSlot uint64) {
 	currentSlotTS := p.RPC.L1Beacon.GetTimestampBySlot(l1HeadSlot)
 	secsInSlot := time.Now().UTC().Unix() - int64(currentSlotTS)
-	durationSec := int64(p.PreconfDelay) - AbsInt(secsInSlot)
-	time.Sleep(time.Duration(durationSec) * time.Second)
+	durationSec := int64(p.PreconfDelay) - secsInSlot
+	if durationSec > 0 {
+		time.Sleep(time.Duration(durationSec) * time.Second)
+	}
 }
 
 func (p *Proposer) syncL1ProposerDuties(l1Slot uint64) (updated bool, err error) {
