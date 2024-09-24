@@ -29,19 +29,19 @@ var (
 		Category: proposerCategory,
 		EnvVars:  []string{"PROVER_ENDPOINTS"},
 	}
-	PreconfDelay = &cli.DurationFlag{
-		Name:     "epoch.interval",
-		Usage:    "Time delay to send L2 preconf transaction",
-		Category: proposerCategory,
-		Value:    8,
-		EnvVars:  []string{"PRECONF_DELAY"},
-	}
 	L2SuggestedFeeRecipient = &cli.StringFlag{
 		Name:     "l2.suggestedFeeRecipient",
 		Usage:    "Address of the proposed block's suggested L2 fee recipient",
 		Required: true,
 		Category: proposerCategory,
 		EnvVars:  []string{"L2_SUGGESTED_FEE_RECIPIENT"},
+	}
+	PreconfDelay = &cli.DurationFlag{
+		Name:     "epoch.interval",
+		Usage:    "Time delay to send L2 preconf transaction",
+		Category: proposerCategory,
+		Value:    8,
+		EnvVars:  []string{"PRECONF_DELAY"},
 	}
 	SequencerRegistryAddress = &cli.StringFlag{
 		Name:     "sequencerRegistry",
