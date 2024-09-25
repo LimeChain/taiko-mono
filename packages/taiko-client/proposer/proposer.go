@@ -3,6 +3,7 @@ package proposer
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 
 	"fmt"
 	"math/big"
@@ -31,6 +32,12 @@ import (
 	builder "github.com/taikoxyz/taiko-mono/packages/taiko-client/proposer/transaction_builder"
 )
 
+type EligibleSlot struct {
+	Slot       uint64
+	IsPrimary  bool
+	IsFallback bool
+}
+
 // Proposer keep proposing new transactions from L2 execution engine at a fixed interval.
 type Proposer struct {
 	// configurations
@@ -40,7 +47,7 @@ type Proposer struct {
 	RPC *rpc.Client
 
 	proposerDutiesSlot uint64
-	eligibleSlots      []uint64
+	eligibleSlots      []*EligibleSlot
 
 	l1HeadSlotTimer *time.Timer
 
@@ -233,10 +240,17 @@ func (p *Proposer) eventLoop() {
 			if updated {
 				log.Info("L1 proposer duties updated successfully")
 
+				l1Slots := make([]uint64, 0)
+				for _, slot := range p.eligibleSlots {
+					if slot.IsPrimary || slot.IsFallback {
+						l1Slots = append(l1Slots, slot.Slot)
+					}
+				}
+
 				_, err := p.RPC.UpdateL2ConfigAndSlots(
 					p.ctx,
 					p.RPC.L1Beacon.GetGenesisTimestamp(),
-					p.eligibleSlots,
+					l1Slots,
 					p.protocolConfigs.BlockMaxGasLimit,
 					rpc.BlockMaxTxListBytes,
 					p.proposerAddress,
@@ -248,7 +262,7 @@ func (p *Proposer) eventLoop() {
 					continue
 				}
 
-				log.Debug("Updated L2 config and slots successfully", "L1 eligible slots", p.eligibleSlots)
+				log.Debug("Updated L2 config and slots successfully", "L1 eligible slots", l1Slots)
 			}
 
 			log.Debug(
@@ -274,14 +288,14 @@ func (p *Proposer) eventLoop() {
 				}
 			}
 
-			isEligible, err := p.isEligibleForL1Slot(l1HeadSlot + 1)
+			eligibleSlot, err := p.isEligibleForL1Slot(l1HeadSlot + 1)
 			if err != nil {
 				log.Error("Failed to check if the proposer is eligible for the L1 slot", "error", err)
 				continue
 			}
-			if !isEligible {
+			if eligibleSlot.IsFallback {
 				metrics.ProposerProposeEpochCounter.Add(1)
-				log.Debug("Proposer IS NOT eligible for the L1 slot", "slot", l1HeadSlot+1)
+				log.Debug("Proposer is fallback for the L1 slot", "slot", l1HeadSlot+1)
 
 				// Attempt a propose operation
 				if err := p.ProposeOp(p.ctx); err != nil {
@@ -290,16 +304,16 @@ func (p *Proposer) eventLoop() {
 				}
 			}
 
-			isEligible, err = p.isEligibleForL1Slot(l1HeadSlot + 2)
+			eligibleSlot, err = p.isEligibleForL1Slot(l1HeadSlot + 2)
 			if err != nil {
 				log.Error("Failed to check if the proposer is eligible for the L1 slot", "error", err)
 				continue
 			}
-			if isEligible {
+			if eligibleSlot.IsPrimary {
 				p.preconfDelay(l1HeadSlot)
 
 				metrics.ProposerProposeEpochCounter.Add(1)
-				log.Debug("Proposer IS eligible for the L1 slot", "slot", l1HeadSlot+2)
+				log.Debug("Proposer is primary for the L1 slot", "slot", l1HeadSlot+2)
 
 				// Attempt a preconf operation
 				if err := p.PreconfOp(p.ctx); err != nil {
@@ -402,16 +416,15 @@ func (p *Proposer) updateProposerDuties(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("failed to get block by slot: %w", err)
 	}
 
-	var eligibleSlots []uint64
+	var eligibleSlots []*EligibleSlot
 
-	for i, duty := range proposerDuties {
+	for _, duty := range proposerDuties {
 		wg.Add(1)
-		go func(duty *types.ProposerDuty, index int) {
+		go func(duty *types.ProposerDuty) {
 			defer wg.Done()
-			isEligible, err := p.handleDuty(
+			eligibleSlot, err := p.handleDuty(
 				ctx,
 				duty,
-				index,
 				p.RPC.L1Beacon.GetL1HeadSlot(),
 				height,
 			)
@@ -421,16 +434,11 @@ func (p *Proposer) updateProposerDuties(ctx context.Context) (bool, error) {
 			}
 
 			mu.Lock()
-			if isEligible {
-				dutySlot, err := strconv.Atoi(duty.Slot)
-				if err != nil {
-					errors <- fmt.Errorf("failed to convert L1 duty slot to integer: %w", err)
-					return
-				}
-				eligibleSlots = append(eligibleSlots, uint64(dutySlot))
+			if eligibleSlot != nil {
+				eligibleSlots = append(eligibleSlots, eligibleSlot)
 			}
 			mu.Unlock()
-		}(duty, i)
+		}(duty)
 	}
 
 	wg.Wait()
@@ -448,51 +456,53 @@ func (p *Proposer) updateProposerDuties(ctx context.Context) (bool, error) {
 }
 
 func (p *Proposer) handleDuty(
-	_ context.Context,
+	ctx context.Context,
 	duty *types.ProposerDuty,
-	_ int,
-	_ uint64,
-	_ uint64,
-) (bool, error) {
-	if duty.PubKey != p.validatorPublicKeyHex {
-		// TODO: Uncomment once the proposer fallback mechanism is implemented in the relayer.
-		// pubKeyBytes, err := hex.DecodeString(duty.PubKey[2:])
-		// if err != nil {
-		// 	return false, fmt.Errorf("failed to decode duty public key: %w", err)
-		// }
-
-		// isEligible, err := p.RPC.SequencerRegistry.IsEligible(&bind.CallOpts{Context: ctx}, pubKeyBytes)
-		// if err != nil {
-		// 	return false, fmt.Errorf("failed to get is eligible: %w", err)
-		// }
-
-		// if !isEligible {
-		// 	dutySlot, err := strconv.Atoi(duty.Slot)
-		// 	if err != nil {
-		// 		return false, fmt.Errorf("failed to convert L1 duty slot to integer: %w", err)
-		// 	}
-
-		// 	blockNum := height + uint64(dutySlot) - headSlot
-
-		// 	fallbackSigner, err := p.RPC.SequencerRegistry.FallbackSigner(
-		// 		&bind.CallOpts{Context: ctx},
-		// 		big.NewInt(int64(blockNum)),
-		// 	)
-		// 	if err != nil {
-		// 		return false, fmt.Errorf("failed to get FallbackSigner: %w", err)
-		// 	}
-
-		// 	if fallbackSigner == p.validatorAddress {
-		// 		return true, nil
-		// 	}
-		// }
-		return false, nil
-	}
-
-	// TODO: Remove once the proposer fallback mechanism is implemented in the relayer.
+	l1HeadSlot uint64,
+	l1Height uint64,
+) (*EligibleSlot, error) {
 	dutySlot, err := strconv.Atoi(duty.Slot)
 	if err != nil {
-		return false, err
+		return nil, fmt.Errorf("failed to convert L1 duty slot to integer: %w", err)
+	}
+
+	eligibleSlot := &EligibleSlot{
+		Slot:       uint64(dutySlot),
+		IsPrimary:  false,
+		IsFallback: false,
+	}
+
+	if duty.PubKey != p.validatorPublicKeyHex {
+		pubKeyBytes, err := hex.DecodeString(duty.PubKey[2:])
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode duty public key: %w", err)
+		}
+
+		isAnotherValEligible, err := p.RPC.SequencerRegistry.IsEligible(&bind.CallOpts{Context: ctx}, pubKeyBytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get is eligible: %w", err)
+		}
+
+		if isAnotherValEligible {
+			return eligibleSlot, nil
+		}
+
+		blockNum := l1Height + uint64(dutySlot) - l1HeadSlot
+
+		fallbackSigner, err := p.RPC.SequencerRegistry.FallbackSigner(
+			&bind.CallOpts{Context: ctx},
+			big.NewInt(int64(blockNum)),
+		)
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to get FallbackSigner: %w", err)
+		}
+
+		if fallbackSigner == p.validatorAddress {
+			eligibleSlot.IsFallback = true
+		}
+	} else {
+		eligibleSlot.IsPrimary = true
 	}
 
 	// Check if the dutySlot is in the same epoch as the (dutySlot - 2).
@@ -500,26 +510,26 @@ func (p *Proposer) handleDuty(
 	slotsPerEpoch := p.RPC.L1Beacon.GetSlotsPerEpoch()
 	prevL1HeadSlotEpoch := (uint64(dutySlot) - 2) / slotsPerEpoch
 	l1SlotEpoch := uint64(dutySlot) / slotsPerEpoch
-
-	if prevL1HeadSlotEpoch != l1SlotEpoch {
-		return false, nil
+	if prevL1HeadSlotEpoch != l1SlotEpoch && eligibleSlot.IsPrimary {
+		eligibleSlot.IsPrimary = false
+		eligibleSlot.IsFallback = true
 	}
 
-	return true, nil
+	return eligibleSlot, nil
 }
 
-func (p *Proposer) isEligibleForL1Slot(slot uint64) (bool, error) {
+func (p *Proposer) isEligibleForL1Slot(slot uint64) (*EligibleSlot, error) {
 	if len(p.eligibleSlots) == 0 {
-		return false, fmt.Errorf("no eligible slots found")
+		return nil, fmt.Errorf("no eligible slots found")
 	}
 	// If the proposer is eligible for the slot, return true.
 	for _, eligibleSlot := range p.eligibleSlots {
-		if slot == eligibleSlot {
-			return true, nil
+		if slot == eligibleSlot.Slot {
+			return eligibleSlot, nil
 		}
 	}
 
-	return false, nil
+	return nil, fmt.Errorf("eligible slot not found")
 }
 
 // fetchTxListToPropose fetches prebuilt list of transactions from L2 execution engine.
