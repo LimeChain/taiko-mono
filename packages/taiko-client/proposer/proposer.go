@@ -304,7 +304,7 @@ func (p *Proposer) eventLoop() {
 				p.preconfDelay(l1HeadSlot)
 
 				metrics.ProposerProposeEpochCounter.Add(1)
-				log.Debug("Proposer is primary for the L1 slot", "slot", l1HeadSlot+2)
+				log.Debug("Proposer is primary for the L1 slot", "slot", l1HeadSlot+1)
 
 				// Attempt a preconf operation
 				if err := p.PreconfOp(p.ctx); err != nil {
@@ -757,9 +757,9 @@ func (p *Proposer) PreconfTxList(
 		return err
 	}
 
-	log.Debug("Setting validator mev boost constraints", "slot", p.RPC.L1Beacon.GetL1HeadSlot()+2)
+	log.Debug("Setting validator mev boost constraints", "slot", p.RPC.L1Beacon.GetL1HeadSlot()+1)
 
-	if err = p.RPC.L1MevBoost.SetConstraints(p.RPC.L1Beacon.GetL1HeadSlot()+2, newTx); err != nil {
+	if err = p.RPC.L1MevBoost.SetConstraints(p.RPC.L1Beacon.GetL1HeadSlot()+1, newTx); err != nil {
 		p.txmgr.DecNonce()
 		return fmt.Errorf("failed to set validator mev boost constraints: %w", err)
 	}
