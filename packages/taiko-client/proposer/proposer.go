@@ -269,8 +269,6 @@ func (p *Proposer) eventLoop() {
 				"Checking if the proposer is eligible for the slots",
 				"slot",
 				l1HeadSlot+1,
-				"slot",
-				l1HeadSlot+2,
 			)
 
 			nonce := p.txmgr.GetNonce()
@@ -302,14 +300,7 @@ func (p *Proposer) eventLoop() {
 					log.Error("Propose operation error", "error", err)
 					continue
 				}
-			}
-
-			eligibleSlot, err = p.isEligibleForL1Slot(l1HeadSlot + 2)
-			if err != nil {
-				log.Error("Failed to check if the proposer is eligible for the L1 slot", "error", err)
-				continue
-			}
-			if eligibleSlot.IsPrimary {
+			} else if eligibleSlot.IsPrimary {
 				p.preconfDelay(l1HeadSlot)
 
 				metrics.ProposerProposeEpochCounter.Add(1)
@@ -696,7 +687,7 @@ func (p *Proposer) PreconfOp(ctx context.Context) error {
 		"lastProposedAt", p.lastProposedAt,
 	)
 
-	txLists, err := p.fetchTxListToPropose(p.RPC.L1Beacon.GetL1HeadSlot() + 2)
+	txLists, err := p.fetchTxListToPropose(p.RPC.L1Beacon.GetL1HeadSlot() + 1)
 	if err != nil {
 		return err
 	}

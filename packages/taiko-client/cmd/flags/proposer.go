@@ -40,7 +40,7 @@ var (
 		Name:     "epoch.interval",
 		Usage:    "Time delay to send L2 preconf transaction",
 		Category: proposerCategory,
-		Value:    8,
+		Value:    5,
 		EnvVars:  []string{"PRECONF_DELAY"},
 	}
 	SequencerRegistryAddress = &cli.StringFlag{
