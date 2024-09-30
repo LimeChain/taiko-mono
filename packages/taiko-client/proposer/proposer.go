@@ -32,13 +32,16 @@ import (
 	builder "github.com/taikoxyz/taiko-mono/packages/taiko-client/proposer/transaction_builder"
 )
 
+// EligibleSlot represents a slot that a proposer
+// may be eligible to participate in.
 type EligibleSlot struct {
 	Slot       uint64
 	IsPrimary  bool
 	IsFallback bool
 }
 
-// Proposer keep proposing new transactions from L2 execution engine at a fixed interval.
+// Proposer is responsible for proposing new transactions
+// from the L2 execution engine at regular intervals.
 type Proposer struct {
 	// configurations
 	*Config
@@ -46,6 +49,7 @@ type Proposer struct {
 	// RPC clients
 	RPC *rpc.Client
 
+	// State variables for proposer duties
 	proposerDutiesSlot uint64
 	eligibleSlots      []*EligibleSlot
 
@@ -182,6 +186,7 @@ func (p *Proposer) InitFromConfig(ctx context.Context, cfg *Config) (err error) 
 	pubKeyBytes := make([]byte, 48)
 	pubKeyBytes[31] = 0x01
 
+	// Verify if the validator is eligible to propose
 	isEligible, err := p.RPC.SequencerRegistry.IsEligible(&bind.CallOpts{Context: ctx}, pubKeyBytes)
 	if err != nil {
 		return fmt.Errorf("failed to get is eligible error: %w", err)
@@ -231,6 +236,7 @@ func (p *Proposer) eventLoop() {
 
 			log.Info("L1 head slot", "slot", l1HeadSlot)
 
+			// Sync L1 proposer duties
 			updated, err := p.syncL1ProposerDuties(l1HeadSlot)
 			if err != nil {
 				log.Error("Sync L1 proposer duties operation error", "error", err)
@@ -247,6 +253,8 @@ func (p *Proposer) eventLoop() {
 					}
 				}
 
+				// Update L2 config and slots sends the eligible slots
+				// along with L1 params to the L2 execution engine.
 				_, err := p.RPC.UpdateL2ConfigAndSlots(
 					p.ctx,
 					p.RPC.L1Beacon.GetGenesisTimestamp(),
@@ -282,6 +290,7 @@ func (p *Proposer) eventLoop() {
 					break
 				}
 
+				// Reset the nonce if the proposer nonce is ahead of the network nonce.
 				if AbsInt(int64(txmgrNonce)-int64(netNonce)) > 1 {
 					log.Warn("Proposer nonce is ahead of the network nonce", "network nonce", netNonce, "txmng nonce", txmgrNonce)
 					p.txmgr.ResetNonce()
@@ -293,6 +302,7 @@ func (p *Proposer) eventLoop() {
 				log.Error("Failed to check if the proposer is eligible for the L1 slot", "error", err)
 				continue
 			}
+			// If the proposer is a fallback for the slot, sends a propose operation to the taiko L11 contract.
 			if eligibleSlot.IsFallback {
 				metrics.ProposerProposeEpochCounter.Add(1)
 				log.Debug("Proposer is fallback for the L1 slot", "slot", l1HeadSlot+1)
@@ -309,6 +319,7 @@ func (p *Proposer) eventLoop() {
 				log.Error("Failed to check if the proposer is eligible for the L1 slot", "error", err)
 				continue
 			}
+			// If the proposer is a primary for the slot, propose the block to the mev-boost.
 			if eligibleSlot.IsPrimary {
 				p.preconfDelay(l1HeadSlot)
 
@@ -325,6 +336,7 @@ func (p *Proposer) eventLoop() {
 	}
 }
 
+// preconfDelay waits for a specified delay before performing a pre-confirmation operation.
 func (p *Proposer) preconfDelay(l1HeadSlot uint64) {
 	currentSlotTS := p.RPC.L1Beacon.GetTimestampBySlot(l1HeadSlot)
 	secsInSlot := time.Now().UTC().Unix() - int64(currentSlotTS)
@@ -334,6 +346,8 @@ func (p *Proposer) preconfDelay(l1HeadSlot uint64) {
 	}
 }
 
+// syncL1ProposerDuties checks if the L1 proposer duties need to be updated based on the current slot.
+// If required, it updates the eligible slots for the proposer.
 func (p *Proposer) syncL1ProposerDuties(l1Slot uint64) (updated bool, err error) {
 	updated = false
 
@@ -354,6 +368,7 @@ func (p *Proposer) syncL1ProposerDuties(l1Slot uint64) (updated bool, err error)
 	return updated, nil
 }
 
+// shouldUpdateDuties checks if the proposer duties should be updated based on the current slot.
 func (p *Proposer) shouldUpdateDuties(headSlot uint64) bool {
 	if p.proposerDutiesSlot == 0 {
 		return true
@@ -455,40 +470,50 @@ func (p *Proposer) updateProposerDuties(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
+// handleDuty processes a proposer duty for a specific L1 slot and checks if the current proposer is
+// eligible to propose a block in that slot, either as the primary proposer or as a fallback.
 func (p *Proposer) handleDuty(
 	ctx context.Context,
 	duty *types.ProposerDuty,
 	l1HeadSlot uint64,
 	l1Height uint64,
 ) (*EligibleSlot, error) {
+	// Convert the duty slot from string to integer
 	dutySlot, err := strconv.Atoi(duty.Slot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert L1 duty slot to integer: %w", err)
 	}
 
+	// Create a new EligibleSlot with the duty slot
 	eligibleSlot := &EligibleSlot{
 		Slot:       uint64(dutySlot),
 		IsPrimary:  false,
 		IsFallback: false,
 	}
 
+	// Check if the duty is assigned to this proposer based on the public key
 	if duty.PubKey != p.validatorPublicKeyHex {
+		// Decode the duty's public key
 		pubKeyBytes, err := hex.DecodeString(duty.PubKey[2:])
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode duty public key: %w", err)
 		}
 
+		// Check if another validator is eligible to propose
 		isAnotherValEligible, err := p.RPC.SequencerRegistry.IsEligible(&bind.CallOpts{Context: ctx}, pubKeyBytes)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get is eligible: %w", err)
 		}
 
+		// If another validator is eligible, skip this duty
 		if isAnotherValEligible {
 			return eligibleSlot, nil
 		}
 
+		// Calculate the block number corresponding to the fallback signer for this slot
 		blockNum := l1Height + uint64(dutySlot) - l1HeadSlot
 
+		// Check if the fallback signer for the calculated block number matches the proposer's address
 		fallbackSigner, err := p.RPC.SequencerRegistry.FallbackSigner(
 			&bind.CallOpts{Context: ctx},
 			big.NewInt(int64(blockNum)),
@@ -498,6 +523,7 @@ func (p *Proposer) handleDuty(
 			return nil, fmt.Errorf("failed to get FallbackSigner: %w", err)
 		}
 
+		// If the fallback signer matches this proposer's address, mark it as fallback
 		if fallbackSigner == p.validatorAddress {
 			eligibleSlot.IsFallback = true
 		}
@@ -510,6 +536,7 @@ func (p *Proposer) handleDuty(
 	slotsPerEpoch := p.RPC.L1Beacon.GetSlotsPerEpoch()
 	prevL1HeadSlotEpoch := (uint64(dutySlot) - 2) / slotsPerEpoch
 	l1SlotEpoch := uint64(dutySlot) / slotsPerEpoch
+	// If the duty slot is not in the same epoch, switch the role to fallback
 	if prevL1HeadSlotEpoch != l1SlotEpoch && eligibleSlot.IsPrimary {
 		eligibleSlot.IsPrimary = false
 		eligibleSlot.IsFallback = true
@@ -518,17 +545,22 @@ func (p *Proposer) handleDuty(
 	return eligibleSlot, nil
 }
 
+// isEligibleForL1Slot checks if the proposer is eligible to propose a block for the given L1 slot.
+// It looks for the slot in the list of eligible slots and returns the corresponding eligibility status.
 func (p *Proposer) isEligibleForL1Slot(slot uint64) (*EligibleSlot, error) {
+	// Ensure there are eligible slots available
 	if len(p.eligibleSlots) == 0 {
 		return nil, fmt.Errorf("no eligible slots found")
 	}
-	// If the proposer is eligible for the slot, return true.
+
+	// Loop through the eligible slots to find a matching slot
 	for _, eligibleSlot := range p.eligibleSlots {
 		if slot == eligibleSlot.Slot {
 			return eligibleSlot, nil
 		}
 	}
 
+	// If no matching slot is found, return an error
 	return nil, fmt.Errorf("eligible slot not found")
 }
 
@@ -584,18 +616,30 @@ func (p *Proposer) fetchTxListToPropose(l1Slot uint64) ([]ethTypes.Transactions,
 	return txLists, nil
 }
 
+// updateL1HeadSlotTicker updates or resets the timer that controls when the next L1 head slot is processed.
+// It calculates the time until the next L1 slot is expected and sets a timer for the next action.
 func (p *Proposer) updateL1HeadSlotTicker() {
+	// Stop the current timer if it's already running, to avoid conflicts.
 	if p.l1HeadSlotTimer != nil {
 		p.l1HeadSlotTimer.Stop()
 	}
+
+	// Get the timestamp of the next L1 slot by querying the beacon chain.
 	nextSlotTS := p.RPC.L1Beacon.GetTimestampBySlot(p.RPC.L1Beacon.GetL1HeadSlot() + 1)
+
+	// Calculate the number of seconds remaining until the next slot occurs.
 	durationSec := int64(nextSlotTS) - time.Now().UTC().Unix()
+
+	// Get the number of seconds in a slot from the beacon chain configuration.
 	secPerSlot := p.RPC.L1Beacon.GetSecondsPerSlot()
 
+	// If the calculated duration is negative or zero, adjust the duration to the next slot.
+	// This can happen if the system is slightly behind or if the next slot has already started.
 	if durationSec <= 0 {
 		durationSec = int64(secPerSlot) - AbsInt(durationSec)
 	}
 
+	// Log the time remaining until the next L1 head slot for debugging purposes.
 	log.Debug(
 		"Setting L1 head slot timer",
 		"next L1 head slot",
@@ -604,6 +648,8 @@ func (p *Proposer) updateL1HeadSlotTicker() {
 		durationSec,
 	)
 
+	// Create a new timer for the next L1 slot, based on the calculated duration.
+	// This timer will trigger when the next slot starts, allowing the proposer to take the necessary actions.
 	duration := time.Duration(durationSec) * time.Second
 	p.l1HeadSlotTimer = time.NewTimer(duration)
 }
@@ -690,6 +736,8 @@ func (p *Proposer) ProposeTxList(
 	return nil
 }
 
+// PreconfOp performs a preconfirmation operation, fetching transactions and
+// proposing them to the mev-boost.
 func (p *Proposer) PreconfOp(ctx context.Context) error {
 	log.Info(
 		"Start fetching L2 execution engine's transaction pool content",
@@ -733,7 +781,7 @@ func (p *Proposer) PreconfOp(ctx context.Context) error {
 	return nil
 }
 
-// PreconfTxList proposes the given transactions list to TaikoL1 smart contract.
+// PreconfTxList proposes the given transactions list to mev-boost.
 func (p *Proposer) PreconfTxList(
 	ctx context.Context,
 	txListBytes []byte,

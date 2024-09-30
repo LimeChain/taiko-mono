@@ -246,7 +246,7 @@ func (c *Client) WaitL2Header(ctx context.Context, blockID *big.Int) (*types.Hea
 	return nil, fmt.Errorf("failed to fetch block header from L2 execution engine, blockID: %d", blockID)
 }
 
-// BuildTxList prepares list of transactions to be fetched for proposing.
+// UpdateL2ConfigAndSlots updates the L2 execution engine's configuration and slots.
 func (c *Client) UpdateL2ConfigAndSlots(
 	ctx context.Context,
 	l1GenesisTimestamp uint64,
