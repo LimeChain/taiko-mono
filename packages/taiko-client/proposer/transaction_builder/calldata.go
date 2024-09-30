@@ -5,7 +5,6 @@ import (
 	"crypto/ecdsa"
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
@@ -59,7 +58,7 @@ func (b *CalldataTransactionBuilder) Build(
 	tierFees []encoding.TierFee,
 	includeParentMetaHash bool,
 	txListBytes []byte,
-) (*txmgr.TxCandidate, error) {
+) (*TxCandidate, error) {
 	// Try to assign a prover.
 	maxFee, err := b.proverSelector.AssignProver(
 		ctx,
@@ -114,7 +113,7 @@ func (b *CalldataTransactionBuilder) Build(
 		}
 	}
 
-	return &txmgr.TxCandidate{
+	return &TxCandidate{
 		TxData:   data,
 		Blobs:    nil,
 		To:       to,

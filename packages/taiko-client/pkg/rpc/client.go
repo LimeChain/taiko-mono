@@ -20,12 +20,13 @@ const (
 type Client struct {
 	// Geth ethclient clients
 	L1           *EthClient
+	L1MevBoost   IMevBoostClient
 	L2           *EthClient
 	L2CheckPoint *EthClient
 	// Geth Engine API clients
 	L2Engine *EngineClient
 	// Beacon clients
-	L1Beacon *BeaconClient
+	L1Beacon IBeaconClient
 	// Protocol contracts clients
 	TaikoL1                *bindings.TaikoL1Client
 	TaikoL2                *bindings.TaikoL2Client
@@ -41,6 +42,7 @@ type Client struct {
 // won't be initialized.
 type ClientConfig struct {
 	L1Endpoint                    string
+	L1MevBoostEndpoint            string
 	L2Endpoint                    string
 	L1BeaconEndpoint              string
 	L2CheckPoint                  string
@@ -61,6 +63,7 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 	var (
 		l1Client       *EthClient
 		l2Client       *EthClient
+		l1MevBoost     *MevBoostClient
 		l1BeaconClient *BeaconClient
 		l2CheckPoint   *EthClient
 		err            error
@@ -85,6 +88,14 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 		if cfg.L1BeaconEndpoint != "" && os.Getenv("RUN_TESTS") == "" {
 			if l1BeaconClient, err = NewBeaconClient(cfg.L1BeaconEndpoint, defaultTimeout); err != nil {
 				log.Error("Failed to connect to L1 beacon endpoint, retrying", "endpoint", cfg.L1BeaconEndpoint, "err", err)
+				return err
+			}
+		}
+
+		// NOTE: when running tests, we do not have a L1 mev-boost endpoint.
+		if cfg.L1MevBoostEndpoint != "" && os.Getenv("RUN_TESTS") == "" {
+			if l1MevBoost, err = NewMevBoostClient(cfg.L1MevBoostEndpoint, cfg.Timeout); err != nil {
+				log.Error("Failed to connect to L1 MEV boost endpoint, retrying", "endpoint", cfg.L1MevBoostEndpoint, "err", err)
 				return err
 			}
 		}
@@ -161,6 +172,7 @@ func NewClient(ctx context.Context, cfg *ClientConfig) (*Client, error) {
 	client := &Client{
 		L1:                     l1Client,
 		L1Beacon:               l1BeaconClient,
+		L1MevBoost:             l1MevBoost,
 		L2:                     l2Client,
 		L2CheckPoint:           l2CheckPoint,
 		L2Engine:               l2AuthClient,

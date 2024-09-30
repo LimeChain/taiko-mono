@@ -246,12 +246,14 @@ func (c *Client) WaitL2Header(ctx context.Context, blockID *big.Int) (*types.Hea
 	return nil, fmt.Errorf("failed to fetch block header from L2 execution engine, blockID: %d", blockID)
 }
 
-// BuildTxList prepares list of transactions to be fetched for proposing.
-func (c *Client) BuildTxList(
+// UpdateL2ConfigAndSlots updates the L2 execution engine's configuration and slots.
+func (c *Client) UpdateL2ConfigAndSlots(
 	ctx context.Context,
-	beneficiary common.Address,
+	l1GenesisTimestamp uint64,
+	currentAssignedSlots []uint64,
 	blockMaxGasLimit uint32,
 	maxBytesPerTxList uint64,
+	beneficiary common.Address,
 	locals []common.Address,
 	maxTransactionsLists uint64,
 ) ([]*miner.PreBuiltTxList, error) {
@@ -284,12 +286,14 @@ func (c *Client) BuildTxList(
 		localsArg = append(localsArg, local.Hex())
 	}
 
-	return c.L2Engine.BuildTxList(
+	return c.L2Engine.UpdateConfigAndSlots(
 		ctxWithTimeout,
-		beneficiary,
+		l1GenesisTimestamp,
+		currentAssignedSlots,
 		baseFeeInfo.Basefee,
 		uint64(blockMaxGasLimit),
 		maxBytesPerTxList,
+		beneficiary,
 		localsArg,
 		maxTransactionsLists,
 	)
@@ -297,11 +301,11 @@ func (c *Client) BuildTxList(
 
 // FetchTxList fetches the transactions list from L2 execution engine's transactions pool with given
 // upper limit.
-func (c *Client) FetchTxList(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
+func (c *Client) FetchTxList(ctx context.Context, l1Slot uint64) ([]*miner.PreBuiltTxList, error) {
 	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, defaultTimeout)
 	defer cancel()
 
-	return c.L2Engine.FetchTxList(ctxWithTimeout)
+	return c.L2Engine.FetchTxList(ctxWithTimeout, l1Slot)
 }
 
 // L2AccountNonce fetches the nonce of the given L2 account at a specified height.

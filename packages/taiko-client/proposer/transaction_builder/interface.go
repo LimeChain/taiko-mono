@@ -3,8 +3,6 @@ package builder
 import (
 	"context"
 
-	"github.com/ethereum-optimism/optimism/op-service/txmgr"
-
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/encoding"
 )
 
@@ -15,5 +13,5 @@ type ProposeBlockTransactionBuilder interface {
 		tierFees []encoding.TierFee,
 		includeParentMetaHash bool,
 		txListBytes []byte,
-	) (*txmgr.TxCandidate, error)
+	) (*TxCandidate, error)
 }

@@ -7,7 +7,6 @@ import (
 	"math/big"
 
 	"github.com/ethereum-optimism/optimism/op-service/eth"
-	"github.com/ethereum-optimism/optimism/op-service/txmgr"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
@@ -62,7 +61,7 @@ func (b *BlobTransactionBuilder) Build(
 	tierFees []encoding.TierFee,
 	includeParentMetaHash bool,
 	txListBytes []byte,
-) (*txmgr.TxCandidate, error) {
+) (*TxCandidate, error) {
 	var blob = &eth.Blob{}
 	if err := blob.FromData(txListBytes); err != nil {
 		return nil, err
@@ -128,7 +127,7 @@ func (b *BlobTransactionBuilder) Build(
 		}
 	}
 
-	return &txmgr.TxCandidate{
+	return &TxCandidate{
 		TxData:   data,
 		Blobs:    []*eth.Blob{blob},
 		To:       to,

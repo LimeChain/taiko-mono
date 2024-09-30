@@ -27,12 +27,11 @@ type Config struct {
 	L1ProposerPrivKey          *ecdsa.PrivateKey
 	L2SuggestedFeeRecipient    common.Address
 	ExtraData                  string
-	ProposeInterval            time.Duration
+	PreconfDelay               time.Duration
 	LocalAddresses             []common.Address
 	LocalAddressesOnly         bool
 	MinGasUsed                 uint64
 	MinTxListBytes             uint64
-	MinProposingInternal       time.Duration
 	MaxProposedTxListsPerEpoch uint64
 	ProposeBlockTxGasLimit     uint64
 	ProverEndpoints            []*url.URL
@@ -40,6 +39,8 @@ type Config struct {
 	SgxTierFee                 *big.Int
 	TierFeePriceBump           *big.Int
 	MaxTierFeePriceBumps       uint64
+	MaxProposerDutiesSlots     uint64
+	ProposerDutiesUpdateFreq   uint64
 	IncludeParentMetaHash      bool
 	BlobAllowed                bool
 	TxmgrConfigs               *txmgr.CLIConfig
@@ -57,6 +58,10 @@ func NewConfigFromCliContext(c *cli.Context) (*Config, error) {
 	l1ProposerPrivKey, err := crypto.ToECDSA(common.FromHex(c.String(flags.L1ProposerPrivKey.Name)))
 	if err != nil {
 		return nil, fmt.Errorf("invalid L1 proposer private key: %w", err)
+	}
+
+	if !c.IsSet(flags.L1BeaconEndpoint.Name) {
+		return nil, fmt.Errorf("empty L1 beacon endpoint")
 	}
 
 	l2SuggestedFeeRecipient := c.String(flags.L2SuggestedFeeRecipient.Name)
@@ -96,6 +101,8 @@ func NewConfigFromCliContext(c *cli.Context) (*Config, error) {
 	return &Config{
 		ClientConfig: &rpc.ClientConfig{
 			L1Endpoint:               c.String(flags.L1WSEndpoint.Name),
+			L1MevBoostEndpoint:       c.String(flags.L1MevBoostEndpoint.Name),
+			L1BeaconEndpoint:         c.String(flags.L1BeaconEndpoint.Name),
 			L2Endpoint:               c.String(flags.L2HTTPEndpoint.Name),
 			TaikoL1Address:           common.HexToAddress(c.String(flags.TaikoL1Address.Name)),
 			TaikoL2Address:           common.HexToAddress(c.String(flags.TaikoL2Address.Name)),
@@ -109,12 +116,11 @@ func NewConfigFromCliContext(c *cli.Context) (*Config, error) {
 		L1ProposerPrivKey:          l1ProposerPrivKey,
 		L2SuggestedFeeRecipient:    common.HexToAddress(l2SuggestedFeeRecipient),
 		ExtraData:                  c.String(flags.ExtraData.Name),
-		ProposeInterval:            c.Duration(flags.ProposeInterval.Name),
+		PreconfDelay:               c.Duration(flags.PreconfDelay.Name),
 		LocalAddresses:             localAddresses,
 		LocalAddressesOnly:         c.Bool(flags.TxPoolLocalsOnly.Name),
 		MinGasUsed:                 c.Uint64(flags.MinGasUsed.Name),
 		MinTxListBytes:             c.Uint64(flags.MinTxListBytes.Name),
-		MinProposingInternal:       c.Duration(flags.MinProposingInternal.Name),
 		MaxProposedTxListsPerEpoch: c.Uint64(flags.MaxProposedTxListsPerEpoch.Name),
 		ProposeBlockTxGasLimit:     c.Uint64(flags.TxGasLimit.Name),
 		ProverEndpoints:            proverEndpoints,
@@ -122,6 +128,8 @@ func NewConfigFromCliContext(c *cli.Context) (*Config, error) {
 		SgxTierFee:                 sgxTierFee,
 		TierFeePriceBump:           new(big.Int).SetUint64(c.Uint64(flags.TierFeePriceBump.Name)),
 		MaxTierFeePriceBumps:       c.Uint64(flags.MaxTierFeePriceBumps.Name),
+		MaxProposerDutiesSlots:     c.Uint64(flags.MaxProposerDutiesSlots.Name),
+		ProposerDutiesUpdateFreq:   c.Uint64(flags.ProposerDutiesUpdateFreq.Name),
 		IncludeParentMetaHash:      c.Bool(flags.ProposeBlockIncludeParentMetaHash.Name),
 		BlobAllowed:                c.Bool(flags.BlobAllowed.Name),
 		L1BlockBuilderTip:          new(big.Int).SetUint64(c.Uint64(flags.L1BlockBuilderTip.Name)),
