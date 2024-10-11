@@ -99,12 +99,14 @@ func (c *EngineClient) ExchangeTransitionConfiguration(
 	return result, nil
 }
 
-func (c *EngineClient) BuildTxList(
+func (c *EngineClient) UpdateConfigAndSlots(
 	ctx context.Context,
-	beneficiary common.Address,
+	l1GenesisTimestamp uint64,
+	currentAssignedSlots []uint64,
 	baseFee *big.Int,
 	blockMaxGasLimit uint64,
 	maxBytesPerTxList uint64,
+	beneficiary common.Address,
 	locals []string,
 	maxTransactionsLists uint64,
 ) ([]*miner.PreBuiltTxList, error) {
@@ -115,11 +117,13 @@ func (c *EngineClient) BuildTxList(
 	if err := c.CallContext(
 		timeoutCtx,
 		&result,
-		"taikoAuth_buildTxList",
-		beneficiary,
+		"taikoAuth_updateConfigAndSlots",
+		l1GenesisTimestamp,
+		currentAssignedSlots,
 		baseFee,
 		blockMaxGasLimit,
 		maxBytesPerTxList,
+		beneficiary,
 		locals,
 		maxTransactionsLists,
 	); err != nil {
@@ -128,12 +132,12 @@ func (c *EngineClient) BuildTxList(
 	return result, nil
 }
 
-func (c *EngineClient) FetchTxList(ctx context.Context) ([]*miner.PreBuiltTxList, error) {
+func (c *EngineClient) FetchTxList(ctx context.Context, l1Slot uint64) ([]*miner.PreBuiltTxList, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
 	var result []*miner.PreBuiltTxList
-	if err := c.CallContext(timeoutCtx, &result, "taikoAuth_fetchTxList"); err != nil {
+	if err := c.CallContext(timeoutCtx, &result, "taikoAuth_fetchTxList", l1Slot); err != nil {
 		return nil, err
 	}
 	return result, nil

@@ -251,7 +251,7 @@ func (s *Syncer) onBlockProposed(
 	// Decode transactions list.
 	var txListFetcher txlistFetcher.TxListFetcher
 	if event.Meta.BlobUsed {
-		txListFetcher = txlistFetcher.NewBlobTxListFetcher(s.rpc.L1Beacon, s.blobDatasource)
+		txListFetcher = txlistFetcher.NewBlobTxListFetcher(s.rpc.L1Beacon.(*rpc.BeaconClient), s.blobDatasource)
 	} else {
 		txListFetcher = new(txlistFetcher.CalldataFetcher)
 	}

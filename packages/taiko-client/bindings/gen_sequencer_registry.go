@@ -38,20 +38,9 @@ type ISequencerRegistrySequencer struct {
 	DeactivationBlock *big.Int
 }
 
-// ISequencerRegistryValidatorProof is an auto generated low-level Go binding around an user-defined struct.
-type ISequencerRegistryValidatorProof struct {
-	CurrentEpoch    uint64
-	ActivationEpoch uint64
-	ExitEpoch       uint64
-	ValidatorIndex  *big.Int
-	Slashed         bool
-	ProofSlot       *big.Int
-	SszProof        []byte
-}
-
 // SequencerRegistryMetaData contains all meta data concerning the SequencerRegistry contract.
 var SequencerRegistryMetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"function\",\"name\":\"PROTOCOL_VERSION\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"acceptOwnership\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"activate\",\"inputs\":[{\"name\":\"pubkey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structISequencerRegistry.ValidatorProof\",\"components\":[{\"name\":\"currentEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"activationEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"exitEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"validatorIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"slashed\",\"type\":\"bool\",\"internalType\":\"bool\"},{\"name\":\"proofSlot\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"sszProof\",\"type\":\"bytes\",\"internalType\":\"bytes\"}]}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"activationThreshold\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"activationTimeout\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"pure\"},{\"type\":\"function\",\"name\":\"addressManager\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"allSequencers\",\"inputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"changeRegistration\",\"inputs\":[{\"name\":\"signer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"authHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"signature\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"deactivate\",\"inputs\":[{\"name\":\"authHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"signature\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"deactivationPeriod\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"pure\"},{\"type\":\"function\",\"name\":\"eligibleCountAt\",\"inputs\":[{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"forceDeactivate\",\"inputs\":[{\"name\":\"pubkey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structISequencerRegistry.ValidatorProof\",\"components\":[{\"name\":\"currentEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"activationEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"exitEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"validatorIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"slashed\",\"type\":\"bool\",\"internalType\":\"bool\"},{\"name\":\"proofSlot\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"sszProof\",\"type\":\"bytes\",\"internalType\":\"bytes\"}]}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"impl\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"inNonReentrant\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"init\",\"inputs\":[{\"name\":\"_owner\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_activationThreshold\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_withdrawalChallengePeriod\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"isEligible\",\"inputs\":[{\"name\":\"pubkey\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"isEligibleSigner\",\"inputs\":[{\"name\":\"proposer\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"lastUnpausedAt\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint64\",\"internalType\":\"uint64\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"owner\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"pause\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"paused\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"pendingOwner\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"protocolVersion\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"pure\"},{\"type\":\"function\",\"name\":\"proxiableUUID\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"register\",\"inputs\":[{\"name\":\"signer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"authHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"signature\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structISequencerRegistry.ValidatorProof\",\"components\":[{\"name\":\"currentEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"activationEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"exitEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"validatorIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"slashed\",\"type\":\"bool\",\"internalType\":\"bool\"},{\"name\":\"proofSlot\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"sszProof\",\"type\":\"bytes\",\"internalType\":\"bytes\"}]}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"renounceOwnership\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"resolve\",\"inputs\":[{\"name\":\"_chainId\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"_name\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"_allowZeroAddress\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"addresspayable\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"resolve\",\"inputs\":[{\"name\":\"_name\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"_allowZeroAddress\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"addresspayable\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"seqByPubkey\",\"inputs\":[{\"name\":\"\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"pubkey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"signer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"activationBlock\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"deactivationBlock\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"sequencerByIndex\",\"inputs\":[{\"name\":\"_index\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"statusOf\",\"inputs\":[{\"name\":\"pubkey\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"\",\"type\":\"tuple\",\"internalType\":\"structISequencerRegistry.Sequencer\",\"components\":[{\"name\":\"pubkey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"signer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"activationBlock\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"deactivationBlock\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"transferOwnership\",\"inputs\":[{\"name\":\"newOwner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"unpause\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"upgradeTo\",\"inputs\":[{\"name\":\"newImplementation\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"upgradeToAndCall\",\"inputs\":[{\"name\":\"newImplementation\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"data\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"whitelisted\",\"inputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"withdrawalChallengePeriod\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"AdminChanged\",\"inputs\":[{\"name\":\"previousAdmin\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"newAdmin\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"BeaconUpgraded\",\"inputs\":[{\"name\":\"beacon\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Initialized\",\"inputs\":[{\"name\":\"version\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"uint8\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"OwnershipTransferStarted\",\"inputs\":[{\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"OwnershipTransferred\",\"inputs\":[{\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Paused\",\"inputs\":[{\"name\":\"account\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"SequencerUpdated\",\"inputs\":[{\"name\":\"sequencer\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"enabled\",\"type\":\"bool\",\"indexed\":false,\"internalType\":\"bool\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Unpaused\",\"inputs\":[{\"name\":\"account\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Upgraded\",\"inputs\":[{\"name\":\"implementation\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"FUNC_NOT_IMPLEMENTED\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"INVALID_PAUSE_STATUS\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"REENTRANT_CALL\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"RESOLVER_DENIED\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"RESOLVER_INVALID_MANAGER\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"RESOLVER_UNEXPECTED_CHAINID\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"RESOLVER_ZERO_ADDR\",\"inputs\":[{\"name\":\"chainId\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"name\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}]},{\"type\":\"error\",\"name\":\"ZERO_ADDRESS\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"ZERO_VALUE\",\"inputs\":[]}]",
+	ABI: "[{\"type\":\"function\",\"name\":\"ACTIVATION_TIMEOUT\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"DEACTIVATION_PERIOD\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"PROTOCOL_VERSION\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"acceptOwnership\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"activate\",\"inputs\":[{\"name\":\"pubkey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"validatorProof\",\"type\":\"tuple\",\"internalType\":\"structISequencerRegistry.ValidatorProof\",\"components\":[{\"name\":\"currentEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"activationEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"exitEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"validatorIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"slashed\",\"type\":\"bool\",\"internalType\":\"bool\"},{\"name\":\"proofSlot\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"sszProof\",\"type\":\"bytes\",\"internalType\":\"bytes\"}]}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"activationTimeout\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"pure\"},{\"type\":\"function\",\"name\":\"addressManager\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"allValidators\",\"inputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"changeRegistration\",\"inputs\":[{\"name\":\"signer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"authHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"signature\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"deactivate\",\"inputs\":[{\"name\":\"authHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"signature\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"deactivationPeriod\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"pure\"},{\"type\":\"function\",\"name\":\"eligibleCountAt\",\"inputs\":[{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"fallbackSigner\",\"inputs\":[{\"name\":\"_blockNum\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"forceDeactivate\",\"inputs\":[{\"name\":\"pubkey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"validatorProof\",\"type\":\"tuple\",\"internalType\":\"structISequencerRegistry.ValidatorProof\",\"components\":[{\"name\":\"currentEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"activationEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"exitEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"validatorIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"slashed\",\"type\":\"bool\",\"internalType\":\"bool\"},{\"name\":\"proofSlot\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"sszProof\",\"type\":\"bytes\",\"internalType\":\"bytes\"}]}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"impl\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"inNonReentrant\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"init\",\"inputs\":[{\"name\":\"_owner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"isEligible\",\"inputs\":[{\"name\":\"pubkey\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"isEligibleSigner\",\"inputs\":[{\"name\":\"signer\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"isRegistered\",\"inputs\":[{\"name\":\"signer\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"lastUnpausedAt\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint64\",\"internalType\":\"uint64\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"nonces\",\"inputs\":[{\"name\":\"pubkey\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"owner\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"pause\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"paused\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"pendingOwner\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"protocolVersion\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"pure\"},{\"type\":\"function\",\"name\":\"proxiableUUID\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"register\",\"inputs\":[{\"name\":\"signer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"authHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"signature\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"validatorProof\",\"type\":\"tuple\",\"internalType\":\"structISequencerRegistry.ValidatorProof\",\"components\":[{\"name\":\"currentEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"activationEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"exitEpoch\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"validatorIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"slashed\",\"type\":\"bool\",\"internalType\":\"bool\"},{\"name\":\"proofSlot\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"sszProof\",\"type\":\"bytes\",\"internalType\":\"bytes\"}]}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"renounceOwnership\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"resolve\",\"inputs\":[{\"name\":\"_chainId\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"_name\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"_allowZeroAddress\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"addresspayable\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"resolve\",\"inputs\":[{\"name\":\"_name\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"_allowZeroAddress\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"addresspayable\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"sequencerByIndex\",\"inputs\":[{\"name\":\"index\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"signer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"pubkey\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"sequencersToPubkeyHash\",\"inputs\":[{\"name\":\"sequencer\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"pubkeyHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"statusOf\",\"inputs\":[{\"name\":\"pubkey\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"data\",\"type\":\"tuple\",\"internalType\":\"structISequencerRegistry.Sequencer\",\"components\":[{\"name\":\"pubkey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"signer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"activationBlock\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"deactivationBlock\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"transferOwnership\",\"inputs\":[{\"name\":\"newOwner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"unpause\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"upgradeTo\",\"inputs\":[{\"name\":\"newImplementation\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"upgradeToAndCall\",\"inputs\":[{\"name\":\"newImplementation\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"data\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"validators\",\"inputs\":[{\"name\":\"pubkeyHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"pubkey\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"metadata\",\"type\":\"bytes\",\"internalType\":\"bytes\"},{\"name\":\"signer\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"activationBlock\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"deactivationBlock\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"AdminChanged\",\"inputs\":[{\"name\":\"previousAdmin\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"newAdmin\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"BeaconUpgraded\",\"inputs\":[{\"name\":\"beacon\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Initialized\",\"inputs\":[{\"name\":\"version\",\"type\":\"uint8\",\"indexed\":false,\"internalType\":\"uint8\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"OwnershipTransferStarted\",\"inputs\":[{\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"OwnershipTransferred\",\"inputs\":[{\"name\":\"previousOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"newOwner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Paused\",\"inputs\":[{\"name\":\"account\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"SequencerActivated\",\"inputs\":[{\"name\":\"signer\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"SequencerChanged\",\"inputs\":[{\"name\":\"oldSigner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"newSigner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"pubkey\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"SequencerDeactivated\",\"inputs\":[{\"name\":\"signer\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"SequencerRegistered\",\"inputs\":[{\"name\":\"signer\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"pubkey\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Unpaused\",\"inputs\":[{\"name\":\"account\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Upgraded\",\"inputs\":[{\"name\":\"implementation\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"FUNC_NOT_IMPLEMENTED\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"INVALID_PAUSE_STATUS\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"REENTRANT_CALL\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"RESOLVER_DENIED\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"RESOLVER_INVALID_MANAGER\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"RESOLVER_UNEXPECTED_CHAINID\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"RESOLVER_ZERO_ADDR\",\"inputs\":[{\"name\":\"chainId\",\"type\":\"uint64\",\"internalType\":\"uint64\"},{\"name\":\"name\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}]},{\"type\":\"error\",\"name\":\"SR_BLOCK_TOO_LOW\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"SR_INDEX_OUT_OF_BOUNDS\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"SR_INVALID_ADDRESS\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"SR_INVALID_AUTH_HASH\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"SR_INVALID_AUTH_SIGNATURE\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"SR_INVALID_PROOF\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"SR_NO_ELIGIBLE_SEQUENCERS\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"SR_SIGNER_REGISTERED\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"SR_VALIDATOR_DEACTIVATED\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"SR_VALIDATOR_NOT_REGISTERED\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"SR_VALIDATOR_REGISTERED\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"ZERO_ADDRESS\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"ZERO_VALUE\",\"inputs\":[]}]",
 }
 
 // SequencerRegistryABI is the input ABI used to generate the binding from.
@@ -200,6 +189,68 @@ func (_SequencerRegistry *SequencerRegistryTransactorRaw) Transact(opts *bind.Tr
 	return _SequencerRegistry.Contract.contract.Transact(opts, method, params...)
 }
 
+// ACTIVATIONTIMEOUT is a free data retrieval call binding the contract method 0x8f3b2275.
+//
+// Solidity: function ACTIVATION_TIMEOUT() view returns(uint8)
+func (_SequencerRegistry *SequencerRegistryCaller) ACTIVATIONTIMEOUT(opts *bind.CallOpts) (uint8, error) {
+	var out []interface{}
+	err := _SequencerRegistry.contract.Call(opts, &out, "ACTIVATION_TIMEOUT")
+
+	if err != nil {
+		return *new(uint8), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(uint8)).(*uint8)
+
+	return out0, err
+
+}
+
+// ACTIVATIONTIMEOUT is a free data retrieval call binding the contract method 0x8f3b2275.
+//
+// Solidity: function ACTIVATION_TIMEOUT() view returns(uint8)
+func (_SequencerRegistry *SequencerRegistrySession) ACTIVATIONTIMEOUT() (uint8, error) {
+	return _SequencerRegistry.Contract.ACTIVATIONTIMEOUT(&_SequencerRegistry.CallOpts)
+}
+
+// ACTIVATIONTIMEOUT is a free data retrieval call binding the contract method 0x8f3b2275.
+//
+// Solidity: function ACTIVATION_TIMEOUT() view returns(uint8)
+func (_SequencerRegistry *SequencerRegistryCallerSession) ACTIVATIONTIMEOUT() (uint8, error) {
+	return _SequencerRegistry.Contract.ACTIVATIONTIMEOUT(&_SequencerRegistry.CallOpts)
+}
+
+// DEACTIVATIONPERIOD is a free data retrieval call binding the contract method 0x7c20672e.
+//
+// Solidity: function DEACTIVATION_PERIOD() view returns(uint8)
+func (_SequencerRegistry *SequencerRegistryCaller) DEACTIVATIONPERIOD(opts *bind.CallOpts) (uint8, error) {
+	var out []interface{}
+	err := _SequencerRegistry.contract.Call(opts, &out, "DEACTIVATION_PERIOD")
+
+	if err != nil {
+		return *new(uint8), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(uint8)).(*uint8)
+
+	return out0, err
+
+}
+
+// DEACTIVATIONPERIOD is a free data retrieval call binding the contract method 0x7c20672e.
+//
+// Solidity: function DEACTIVATION_PERIOD() view returns(uint8)
+func (_SequencerRegistry *SequencerRegistrySession) DEACTIVATIONPERIOD() (uint8, error) {
+	return _SequencerRegistry.Contract.DEACTIVATIONPERIOD(&_SequencerRegistry.CallOpts)
+}
+
+// DEACTIVATIONPERIOD is a free data retrieval call binding the contract method 0x7c20672e.
+//
+// Solidity: function DEACTIVATION_PERIOD() view returns(uint8)
+func (_SequencerRegistry *SequencerRegistryCallerSession) DEACTIVATIONPERIOD() (uint8, error) {
+	return _SequencerRegistry.Contract.DEACTIVATIONPERIOD(&_SequencerRegistry.CallOpts)
+}
+
 // PROTOCOLVERSION is a free data retrieval call binding the contract method 0xaa3aa460.
 //
 // Solidity: function PROTOCOL_VERSION() view returns(uint8)
@@ -229,37 +280,6 @@ func (_SequencerRegistry *SequencerRegistrySession) PROTOCOLVERSION() (uint8, er
 // Solidity: function PROTOCOL_VERSION() view returns(uint8)
 func (_SequencerRegistry *SequencerRegistryCallerSession) PROTOCOLVERSION() (uint8, error) {
 	return _SequencerRegistry.Contract.PROTOCOLVERSION(&_SequencerRegistry.CallOpts)
-}
-
-// ActivationThreshold is a free data retrieval call binding the contract method 0x08cdda2e.
-//
-// Solidity: function activationThreshold() view returns(uint256)
-func (_SequencerRegistry *SequencerRegistryCaller) ActivationThreshold(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _SequencerRegistry.contract.Call(opts, &out, "activationThreshold")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// ActivationThreshold is a free data retrieval call binding the contract method 0x08cdda2e.
-//
-// Solidity: function activationThreshold() view returns(uint256)
-func (_SequencerRegistry *SequencerRegistrySession) ActivationThreshold() (*big.Int, error) {
-	return _SequencerRegistry.Contract.ActivationThreshold(&_SequencerRegistry.CallOpts)
-}
-
-// ActivationThreshold is a free data retrieval call binding the contract method 0x08cdda2e.
-//
-// Solidity: function activationThreshold() view returns(uint256)
-func (_SequencerRegistry *SequencerRegistryCallerSession) ActivationThreshold() (*big.Int, error) {
-	return _SequencerRegistry.Contract.ActivationThreshold(&_SequencerRegistry.CallOpts)
 }
 
 // ActivationTimeout is a free data retrieval call binding the contract method 0x30bd382e.
@@ -324,35 +344,35 @@ func (_SequencerRegistry *SequencerRegistryCallerSession) AddressManager() (comm
 	return _SequencerRegistry.Contract.AddressManager(&_SequencerRegistry.CallOpts)
 }
 
-// AllSequencers is a free data retrieval call binding the contract method 0x64f98f3f.
+// AllValidators is a free data retrieval call binding the contract method 0xbcecf81b.
 //
-// Solidity: function allSequencers(uint256 ) view returns(bytes)
-func (_SequencerRegistry *SequencerRegistryCaller) AllSequencers(opts *bind.CallOpts, arg0 *big.Int) ([]byte, error) {
+// Solidity: function allValidators(uint256 ) view returns(bytes32)
+func (_SequencerRegistry *SequencerRegistryCaller) AllValidators(opts *bind.CallOpts, arg0 *big.Int) ([32]byte, error) {
 	var out []interface{}
-	err := _SequencerRegistry.contract.Call(opts, &out, "allSequencers", arg0)
+	err := _SequencerRegistry.contract.Call(opts, &out, "allValidators", arg0)
 
 	if err != nil {
-		return *new([]byte), err
+		return *new([32]byte), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new([]byte)).(*[]byte)
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
 
 	return out0, err
 
 }
 
-// AllSequencers is a free data retrieval call binding the contract method 0x64f98f3f.
+// AllValidators is a free data retrieval call binding the contract method 0xbcecf81b.
 //
-// Solidity: function allSequencers(uint256 ) view returns(bytes)
-func (_SequencerRegistry *SequencerRegistrySession) AllSequencers(arg0 *big.Int) ([]byte, error) {
-	return _SequencerRegistry.Contract.AllSequencers(&_SequencerRegistry.CallOpts, arg0)
+// Solidity: function allValidators(uint256 ) view returns(bytes32)
+func (_SequencerRegistry *SequencerRegistrySession) AllValidators(arg0 *big.Int) ([32]byte, error) {
+	return _SequencerRegistry.Contract.AllValidators(&_SequencerRegistry.CallOpts, arg0)
 }
 
-// AllSequencers is a free data retrieval call binding the contract method 0x64f98f3f.
+// AllValidators is a free data retrieval call binding the contract method 0xbcecf81b.
 //
-// Solidity: function allSequencers(uint256 ) view returns(bytes)
-func (_SequencerRegistry *SequencerRegistryCallerSession) AllSequencers(arg0 *big.Int) ([]byte, error) {
-	return _SequencerRegistry.Contract.AllSequencers(&_SequencerRegistry.CallOpts, arg0)
+// Solidity: function allValidators(uint256 ) view returns(bytes32)
+func (_SequencerRegistry *SequencerRegistryCallerSession) AllValidators(arg0 *big.Int) ([32]byte, error) {
+	return _SequencerRegistry.Contract.AllValidators(&_SequencerRegistry.CallOpts, arg0)
 }
 
 // DeactivationPeriod is a free data retrieval call binding the contract method 0x887fba65.
@@ -415,6 +435,37 @@ func (_SequencerRegistry *SequencerRegistrySession) EligibleCountAt(blockNumber 
 // Solidity: function eligibleCountAt(uint256 blockNumber) view returns(uint256)
 func (_SequencerRegistry *SequencerRegistryCallerSession) EligibleCountAt(blockNumber *big.Int) (*big.Int, error) {
 	return _SequencerRegistry.Contract.EligibleCountAt(&_SequencerRegistry.CallOpts, blockNumber)
+}
+
+// FallbackSigner is a free data retrieval call binding the contract method 0x5cf858d0.
+//
+// Solidity: function fallbackSigner(uint256 _blockNum) view returns(address)
+func (_SequencerRegistry *SequencerRegistryCaller) FallbackSigner(opts *bind.CallOpts, _blockNum *big.Int) (common.Address, error) {
+	var out []interface{}
+	err := _SequencerRegistry.contract.Call(opts, &out, "fallbackSigner", _blockNum)
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// FallbackSigner is a free data retrieval call binding the contract method 0x5cf858d0.
+//
+// Solidity: function fallbackSigner(uint256 _blockNum) view returns(address)
+func (_SequencerRegistry *SequencerRegistrySession) FallbackSigner(_blockNum *big.Int) (common.Address, error) {
+	return _SequencerRegistry.Contract.FallbackSigner(&_SequencerRegistry.CallOpts, _blockNum)
+}
+
+// FallbackSigner is a free data retrieval call binding the contract method 0x5cf858d0.
+//
+// Solidity: function fallbackSigner(uint256 _blockNum) view returns(address)
+func (_SequencerRegistry *SequencerRegistryCallerSession) FallbackSigner(_blockNum *big.Int) (common.Address, error) {
+	return _SequencerRegistry.Contract.FallbackSigner(&_SequencerRegistry.CallOpts, _blockNum)
 }
 
 // Impl is a free data retrieval call binding the contract method 0x8abf6077.
@@ -512,10 +563,10 @@ func (_SequencerRegistry *SequencerRegistryCallerSession) IsEligible(pubkey []by
 
 // IsEligibleSigner is a free data retrieval call binding the contract method 0x1872ae94.
 //
-// Solidity: function isEligibleSigner(address proposer) view returns(bool)
-func (_SequencerRegistry *SequencerRegistryCaller) IsEligibleSigner(opts *bind.CallOpts, proposer common.Address) (bool, error) {
+// Solidity: function isEligibleSigner(address signer) view returns(bool)
+func (_SequencerRegistry *SequencerRegistryCaller) IsEligibleSigner(opts *bind.CallOpts, signer common.Address) (bool, error) {
 	var out []interface{}
-	err := _SequencerRegistry.contract.Call(opts, &out, "isEligibleSigner", proposer)
+	err := _SequencerRegistry.contract.Call(opts, &out, "isEligibleSigner", signer)
 
 	if err != nil {
 		return *new(bool), err
@@ -529,16 +580,47 @@ func (_SequencerRegistry *SequencerRegistryCaller) IsEligibleSigner(opts *bind.C
 
 // IsEligibleSigner is a free data retrieval call binding the contract method 0x1872ae94.
 //
-// Solidity: function isEligibleSigner(address proposer) view returns(bool)
-func (_SequencerRegistry *SequencerRegistrySession) IsEligibleSigner(proposer common.Address) (bool, error) {
-	return _SequencerRegistry.Contract.IsEligibleSigner(&_SequencerRegistry.CallOpts, proposer)
+// Solidity: function isEligibleSigner(address signer) view returns(bool)
+func (_SequencerRegistry *SequencerRegistrySession) IsEligibleSigner(signer common.Address) (bool, error) {
+	return _SequencerRegistry.Contract.IsEligibleSigner(&_SequencerRegistry.CallOpts, signer)
 }
 
 // IsEligibleSigner is a free data retrieval call binding the contract method 0x1872ae94.
 //
-// Solidity: function isEligibleSigner(address proposer) view returns(bool)
-func (_SequencerRegistry *SequencerRegistryCallerSession) IsEligibleSigner(proposer common.Address) (bool, error) {
-	return _SequencerRegistry.Contract.IsEligibleSigner(&_SequencerRegistry.CallOpts, proposer)
+// Solidity: function isEligibleSigner(address signer) view returns(bool)
+func (_SequencerRegistry *SequencerRegistryCallerSession) IsEligibleSigner(signer common.Address) (bool, error) {
+	return _SequencerRegistry.Contract.IsEligibleSigner(&_SequencerRegistry.CallOpts, signer)
+}
+
+// IsRegistered is a free data retrieval call binding the contract method 0xc3c5a547.
+//
+// Solidity: function isRegistered(address signer) view returns(bool)
+func (_SequencerRegistry *SequencerRegistryCaller) IsRegistered(opts *bind.CallOpts, signer common.Address) (bool, error) {
+	var out []interface{}
+	err := _SequencerRegistry.contract.Call(opts, &out, "isRegistered", signer)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
+}
+
+// IsRegistered is a free data retrieval call binding the contract method 0xc3c5a547.
+//
+// Solidity: function isRegistered(address signer) view returns(bool)
+func (_SequencerRegistry *SequencerRegistrySession) IsRegistered(signer common.Address) (bool, error) {
+	return _SequencerRegistry.Contract.IsRegistered(&_SequencerRegistry.CallOpts, signer)
+}
+
+// IsRegistered is a free data retrieval call binding the contract method 0xc3c5a547.
+//
+// Solidity: function isRegistered(address signer) view returns(bool)
+func (_SequencerRegistry *SequencerRegistryCallerSession) IsRegistered(signer common.Address) (bool, error) {
+	return _SequencerRegistry.Contract.IsRegistered(&_SequencerRegistry.CallOpts, signer)
 }
 
 // LastUnpausedAt is a free data retrieval call binding the contract method 0xe07baba6.
@@ -570,6 +652,37 @@ func (_SequencerRegistry *SequencerRegistrySession) LastUnpausedAt() (uint64, er
 // Solidity: function lastUnpausedAt() view returns(uint64)
 func (_SequencerRegistry *SequencerRegistryCallerSession) LastUnpausedAt() (uint64, error) {
 	return _SequencerRegistry.Contract.LastUnpausedAt(&_SequencerRegistry.CallOpts)
+}
+
+// Nonces is a free data retrieval call binding the contract method 0x4690642b.
+//
+// Solidity: function nonces(bytes pubkey) view returns(uint256)
+func (_SequencerRegistry *SequencerRegistryCaller) Nonces(opts *bind.CallOpts, pubkey []byte) (*big.Int, error) {
+	var out []interface{}
+	err := _SequencerRegistry.contract.Call(opts, &out, "nonces", pubkey)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// Nonces is a free data retrieval call binding the contract method 0x4690642b.
+//
+// Solidity: function nonces(bytes pubkey) view returns(uint256)
+func (_SequencerRegistry *SequencerRegistrySession) Nonces(pubkey []byte) (*big.Int, error) {
+	return _SequencerRegistry.Contract.Nonces(&_SequencerRegistry.CallOpts, pubkey)
+}
+
+// Nonces is a free data retrieval call binding the contract method 0x4690642b.
+//
+// Solidity: function nonces(bytes pubkey) view returns(uint256)
+func (_SequencerRegistry *SequencerRegistryCallerSession) Nonces(pubkey []byte) (*big.Int, error) {
+	return _SequencerRegistry.Contract.Nonces(&_SequencerRegistry.CallOpts, pubkey)
 }
 
 // Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
@@ -789,10 +902,122 @@ func (_SequencerRegistry *SequencerRegistryCallerSession) Resolve0(_name [32]byt
 	return _SequencerRegistry.Contract.Resolve0(&_SequencerRegistry.CallOpts, _name, _allowZeroAddress)
 }
 
-// SeqByPubkey is a free data retrieval call binding the contract method 0xf92c3596.
+// SequencerByIndex is a free data retrieval call binding the contract method 0xf7c82658.
 //
-// Solidity: function seqByPubkey(bytes ) view returns(bytes pubkey, bytes metadata, address signer, uint256 activationBlock, uint256 deactivationBlock)
-func (_SequencerRegistry *SequencerRegistryCaller) SeqByPubkey(opts *bind.CallOpts, arg0 []byte) (struct {
+// Solidity: function sequencerByIndex(uint256 index) view returns(address signer, bytes metadata, bytes pubkey)
+func (_SequencerRegistry *SequencerRegistryCaller) SequencerByIndex(opts *bind.CallOpts, index *big.Int) (struct {
+	Signer   common.Address
+	Metadata []byte
+	Pubkey   []byte
+}, error) {
+	var out []interface{}
+	err := _SequencerRegistry.contract.Call(opts, &out, "sequencerByIndex", index)
+
+	outstruct := new(struct {
+		Signer   common.Address
+		Metadata []byte
+		Pubkey   []byte
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.Signer = *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+	outstruct.Metadata = *abi.ConvertType(out[1], new([]byte)).(*[]byte)
+	outstruct.Pubkey = *abi.ConvertType(out[2], new([]byte)).(*[]byte)
+
+	return *outstruct, err
+
+}
+
+// SequencerByIndex is a free data retrieval call binding the contract method 0xf7c82658.
+//
+// Solidity: function sequencerByIndex(uint256 index) view returns(address signer, bytes metadata, bytes pubkey)
+func (_SequencerRegistry *SequencerRegistrySession) SequencerByIndex(index *big.Int) (struct {
+	Signer   common.Address
+	Metadata []byte
+	Pubkey   []byte
+}, error) {
+	return _SequencerRegistry.Contract.SequencerByIndex(&_SequencerRegistry.CallOpts, index)
+}
+
+// SequencerByIndex is a free data retrieval call binding the contract method 0xf7c82658.
+//
+// Solidity: function sequencerByIndex(uint256 index) view returns(address signer, bytes metadata, bytes pubkey)
+func (_SequencerRegistry *SequencerRegistryCallerSession) SequencerByIndex(index *big.Int) (struct {
+	Signer   common.Address
+	Metadata []byte
+	Pubkey   []byte
+}, error) {
+	return _SequencerRegistry.Contract.SequencerByIndex(&_SequencerRegistry.CallOpts, index)
+}
+
+// SequencersToPubkeyHash is a free data retrieval call binding the contract method 0xed22f0db.
+//
+// Solidity: function sequencersToPubkeyHash(address sequencer) view returns(bytes32 pubkeyHash)
+func (_SequencerRegistry *SequencerRegistryCaller) SequencersToPubkeyHash(opts *bind.CallOpts, sequencer common.Address) ([32]byte, error) {
+	var out []interface{}
+	err := _SequencerRegistry.contract.Call(opts, &out, "sequencersToPubkeyHash", sequencer)
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
+}
+
+// SequencersToPubkeyHash is a free data retrieval call binding the contract method 0xed22f0db.
+//
+// Solidity: function sequencersToPubkeyHash(address sequencer) view returns(bytes32 pubkeyHash)
+func (_SequencerRegistry *SequencerRegistrySession) SequencersToPubkeyHash(sequencer common.Address) ([32]byte, error) {
+	return _SequencerRegistry.Contract.SequencersToPubkeyHash(&_SequencerRegistry.CallOpts, sequencer)
+}
+
+// SequencersToPubkeyHash is a free data retrieval call binding the contract method 0xed22f0db.
+//
+// Solidity: function sequencersToPubkeyHash(address sequencer) view returns(bytes32 pubkeyHash)
+func (_SequencerRegistry *SequencerRegistryCallerSession) SequencersToPubkeyHash(sequencer common.Address) ([32]byte, error) {
+	return _SequencerRegistry.Contract.SequencersToPubkeyHash(&_SequencerRegistry.CallOpts, sequencer)
+}
+
+// StatusOf is a free data retrieval call binding the contract method 0x1df398ec.
+//
+// Solidity: function statusOf(bytes pubkey) view returns((bytes,bytes,address,uint256,uint256) data)
+func (_SequencerRegistry *SequencerRegistryCaller) StatusOf(opts *bind.CallOpts, pubkey []byte) (ISequencerRegistrySequencer, error) {
+	var out []interface{}
+	err := _SequencerRegistry.contract.Call(opts, &out, "statusOf", pubkey)
+
+	if err != nil {
+		return *new(ISequencerRegistrySequencer), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(ISequencerRegistrySequencer)).(*ISequencerRegistrySequencer)
+
+	return out0, err
+
+}
+
+// StatusOf is a free data retrieval call binding the contract method 0x1df398ec.
+//
+// Solidity: function statusOf(bytes pubkey) view returns((bytes,bytes,address,uint256,uint256) data)
+func (_SequencerRegistry *SequencerRegistrySession) StatusOf(pubkey []byte) (ISequencerRegistrySequencer, error) {
+	return _SequencerRegistry.Contract.StatusOf(&_SequencerRegistry.CallOpts, pubkey)
+}
+
+// StatusOf is a free data retrieval call binding the contract method 0x1df398ec.
+//
+// Solidity: function statusOf(bytes pubkey) view returns((bytes,bytes,address,uint256,uint256) data)
+func (_SequencerRegistry *SequencerRegistryCallerSession) StatusOf(pubkey []byte) (ISequencerRegistrySequencer, error) {
+	return _SequencerRegistry.Contract.StatusOf(&_SequencerRegistry.CallOpts, pubkey)
+}
+
+// Validators is a free data retrieval call binding the contract method 0x9bdafcb3.
+//
+// Solidity: function validators(bytes32 pubkeyHash) view returns(bytes pubkey, bytes metadata, address signer, uint256 activationBlock, uint256 deactivationBlock)
+func (_SequencerRegistry *SequencerRegistryCaller) Validators(opts *bind.CallOpts, pubkeyHash [32]byte) (struct {
 	Pubkey            []byte
 	Metadata          []byte
 	Signer            common.Address
@@ -800,7 +1025,7 @@ func (_SequencerRegistry *SequencerRegistryCaller) SeqByPubkey(opts *bind.CallOp
 	DeactivationBlock *big.Int
 }, error) {
 	var out []interface{}
-	err := _SequencerRegistry.contract.Call(opts, &out, "seqByPubkey", arg0)
+	err := _SequencerRegistry.contract.Call(opts, &out, "validators", pubkeyHash)
 
 	outstruct := new(struct {
 		Pubkey            []byte
@@ -823,156 +1048,30 @@ func (_SequencerRegistry *SequencerRegistryCaller) SeqByPubkey(opts *bind.CallOp
 
 }
 
-// SeqByPubkey is a free data retrieval call binding the contract method 0xf92c3596.
+// Validators is a free data retrieval call binding the contract method 0x9bdafcb3.
 //
-// Solidity: function seqByPubkey(bytes ) view returns(bytes pubkey, bytes metadata, address signer, uint256 activationBlock, uint256 deactivationBlock)
-func (_SequencerRegistry *SequencerRegistrySession) SeqByPubkey(arg0 []byte) (struct {
+// Solidity: function validators(bytes32 pubkeyHash) view returns(bytes pubkey, bytes metadata, address signer, uint256 activationBlock, uint256 deactivationBlock)
+func (_SequencerRegistry *SequencerRegistrySession) Validators(pubkeyHash [32]byte) (struct {
 	Pubkey            []byte
 	Metadata          []byte
 	Signer            common.Address
 	ActivationBlock   *big.Int
 	DeactivationBlock *big.Int
 }, error) {
-	return _SequencerRegistry.Contract.SeqByPubkey(&_SequencerRegistry.CallOpts, arg0)
+	return _SequencerRegistry.Contract.Validators(&_SequencerRegistry.CallOpts, pubkeyHash)
 }
 
-// SeqByPubkey is a free data retrieval call binding the contract method 0xf92c3596.
+// Validators is a free data retrieval call binding the contract method 0x9bdafcb3.
 //
-// Solidity: function seqByPubkey(bytes ) view returns(bytes pubkey, bytes metadata, address signer, uint256 activationBlock, uint256 deactivationBlock)
-func (_SequencerRegistry *SequencerRegistryCallerSession) SeqByPubkey(arg0 []byte) (struct {
+// Solidity: function validators(bytes32 pubkeyHash) view returns(bytes pubkey, bytes metadata, address signer, uint256 activationBlock, uint256 deactivationBlock)
+func (_SequencerRegistry *SequencerRegistryCallerSession) Validators(pubkeyHash [32]byte) (struct {
 	Pubkey            []byte
 	Metadata          []byte
 	Signer            common.Address
 	ActivationBlock   *big.Int
 	DeactivationBlock *big.Int
 }, error) {
-	return _SequencerRegistry.Contract.SeqByPubkey(&_SequencerRegistry.CallOpts, arg0)
-}
-
-// SequencerByIndex is a free data retrieval call binding the contract method 0xf7c82658.
-//
-// Solidity: function sequencerByIndex(uint256 _index) view returns(address, bytes, bytes)
-func (_SequencerRegistry *SequencerRegistryCaller) SequencerByIndex(opts *bind.CallOpts, _index *big.Int) (common.Address, []byte, []byte, error) {
-	var out []interface{}
-	err := _SequencerRegistry.contract.Call(opts, &out, "sequencerByIndex", _index)
-
-	if err != nil {
-		return *new(common.Address), *new([]byte), *new([]byte), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-	out1 := *abi.ConvertType(out[1], new([]byte)).(*[]byte)
-	out2 := *abi.ConvertType(out[2], new([]byte)).(*[]byte)
-
-	return out0, out1, out2, err
-
-}
-
-// SequencerByIndex is a free data retrieval call binding the contract method 0xf7c82658.
-//
-// Solidity: function sequencerByIndex(uint256 _index) view returns(address, bytes, bytes)
-func (_SequencerRegistry *SequencerRegistrySession) SequencerByIndex(_index *big.Int) (common.Address, []byte, []byte, error) {
-	return _SequencerRegistry.Contract.SequencerByIndex(&_SequencerRegistry.CallOpts, _index)
-}
-
-// SequencerByIndex is a free data retrieval call binding the contract method 0xf7c82658.
-//
-// Solidity: function sequencerByIndex(uint256 _index) view returns(address, bytes, bytes)
-func (_SequencerRegistry *SequencerRegistryCallerSession) SequencerByIndex(_index *big.Int) (common.Address, []byte, []byte, error) {
-	return _SequencerRegistry.Contract.SequencerByIndex(&_SequencerRegistry.CallOpts, _index)
-}
-
-// StatusOf is a free data retrieval call binding the contract method 0x1df398ec.
-//
-// Solidity: function statusOf(bytes pubkey) view returns((bytes,bytes,address,uint256,uint256))
-func (_SequencerRegistry *SequencerRegistryCaller) StatusOf(opts *bind.CallOpts, pubkey []byte) (ISequencerRegistrySequencer, error) {
-	var out []interface{}
-	err := _SequencerRegistry.contract.Call(opts, &out, "statusOf", pubkey)
-
-	if err != nil {
-		return *new(ISequencerRegistrySequencer), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(ISequencerRegistrySequencer)).(*ISequencerRegistrySequencer)
-
-	return out0, err
-
-}
-
-// StatusOf is a free data retrieval call binding the contract method 0x1df398ec.
-//
-// Solidity: function statusOf(bytes pubkey) view returns((bytes,bytes,address,uint256,uint256))
-func (_SequencerRegistry *SequencerRegistrySession) StatusOf(pubkey []byte) (ISequencerRegistrySequencer, error) {
-	return _SequencerRegistry.Contract.StatusOf(&_SequencerRegistry.CallOpts, pubkey)
-}
-
-// StatusOf is a free data retrieval call binding the contract method 0x1df398ec.
-//
-// Solidity: function statusOf(bytes pubkey) view returns((bytes,bytes,address,uint256,uint256))
-func (_SequencerRegistry *SequencerRegistryCallerSession) StatusOf(pubkey []byte) (ISequencerRegistrySequencer, error) {
-	return _SequencerRegistry.Contract.StatusOf(&_SequencerRegistry.CallOpts, pubkey)
-}
-
-// Whitelisted is a free data retrieval call binding the contract method 0xd936547e.
-//
-// Solidity: function whitelisted(address ) view returns(bool)
-func (_SequencerRegistry *SequencerRegistryCaller) Whitelisted(opts *bind.CallOpts, arg0 common.Address) (bool, error) {
-	var out []interface{}
-	err := _SequencerRegistry.contract.Call(opts, &out, "whitelisted", arg0)
-
-	if err != nil {
-		return *new(bool), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
-
-	return out0, err
-
-}
-
-// Whitelisted is a free data retrieval call binding the contract method 0xd936547e.
-//
-// Solidity: function whitelisted(address ) view returns(bool)
-func (_SequencerRegistry *SequencerRegistrySession) Whitelisted(arg0 common.Address) (bool, error) {
-	return _SequencerRegistry.Contract.Whitelisted(&_SequencerRegistry.CallOpts, arg0)
-}
-
-// Whitelisted is a free data retrieval call binding the contract method 0xd936547e.
-//
-// Solidity: function whitelisted(address ) view returns(bool)
-func (_SequencerRegistry *SequencerRegistryCallerSession) Whitelisted(arg0 common.Address) (bool, error) {
-	return _SequencerRegistry.Contract.Whitelisted(&_SequencerRegistry.CallOpts, arg0)
-}
-
-// WithdrawalChallengePeriod is a free data retrieval call binding the contract method 0x4379c074.
-//
-// Solidity: function withdrawalChallengePeriod() view returns(uint256)
-func (_SequencerRegistry *SequencerRegistryCaller) WithdrawalChallengePeriod(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _SequencerRegistry.contract.Call(opts, &out, "withdrawalChallengePeriod")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// WithdrawalChallengePeriod is a free data retrieval call binding the contract method 0x4379c074.
-//
-// Solidity: function withdrawalChallengePeriod() view returns(uint256)
-func (_SequencerRegistry *SequencerRegistrySession) WithdrawalChallengePeriod() (*big.Int, error) {
-	return _SequencerRegistry.Contract.WithdrawalChallengePeriod(&_SequencerRegistry.CallOpts)
-}
-
-// WithdrawalChallengePeriod is a free data retrieval call binding the contract method 0x4379c074.
-//
-// Solidity: function withdrawalChallengePeriod() view returns(uint256)
-func (_SequencerRegistry *SequencerRegistryCallerSession) WithdrawalChallengePeriod() (*big.Int, error) {
-	return _SequencerRegistry.Contract.WithdrawalChallengePeriod(&_SequencerRegistry.CallOpts)
+	return _SequencerRegistry.Contract.Validators(&_SequencerRegistry.CallOpts, pubkeyHash)
 }
 
 // AcceptOwnership is a paid mutator transaction binding the contract method 0x79ba5097.
@@ -998,23 +1097,23 @@ func (_SequencerRegistry *SequencerRegistryTransactorSession) AcceptOwnership() 
 
 // Activate is a paid mutator transaction binding the contract method 0xb9a7c230.
 //
-// Solidity: function activate(bytes pubkey, (uint64,uint64,uint64,uint256,bool,uint256,bytes) ) returns()
-func (_SequencerRegistry *SequencerRegistryTransactor) Activate(opts *bind.TransactOpts, pubkey []byte, arg1 ISequencerRegistryValidatorProof) (*types.Transaction, error) {
-	return _SequencerRegistry.contract.Transact(opts, "activate", pubkey, arg1)
+// Solidity: function activate(bytes pubkey, (uint64,uint64,uint64,uint256,bool,uint256,bytes) validatorProof) returns()
+func (_SequencerRegistry *SequencerRegistryTransactor) Activate(opts *bind.TransactOpts, pubkey []byte, validatorProof ISequencerRegistryValidatorProof) (*types.Transaction, error) {
+	return _SequencerRegistry.contract.Transact(opts, "activate", pubkey, validatorProof)
 }
 
 // Activate is a paid mutator transaction binding the contract method 0xb9a7c230.
 //
-// Solidity: function activate(bytes pubkey, (uint64,uint64,uint64,uint256,bool,uint256,bytes) ) returns()
-func (_SequencerRegistry *SequencerRegistrySession) Activate(pubkey []byte, arg1 ISequencerRegistryValidatorProof) (*types.Transaction, error) {
-	return _SequencerRegistry.Contract.Activate(&_SequencerRegistry.TransactOpts, pubkey, arg1)
+// Solidity: function activate(bytes pubkey, (uint64,uint64,uint64,uint256,bool,uint256,bytes) validatorProof) returns()
+func (_SequencerRegistry *SequencerRegistrySession) Activate(pubkey []byte, validatorProof ISequencerRegistryValidatorProof) (*types.Transaction, error) {
+	return _SequencerRegistry.Contract.Activate(&_SequencerRegistry.TransactOpts, pubkey, validatorProof)
 }
 
 // Activate is a paid mutator transaction binding the contract method 0xb9a7c230.
 //
-// Solidity: function activate(bytes pubkey, (uint64,uint64,uint64,uint256,bool,uint256,bytes) ) returns()
-func (_SequencerRegistry *SequencerRegistryTransactorSession) Activate(pubkey []byte, arg1 ISequencerRegistryValidatorProof) (*types.Transaction, error) {
-	return _SequencerRegistry.Contract.Activate(&_SequencerRegistry.TransactOpts, pubkey, arg1)
+// Solidity: function activate(bytes pubkey, (uint64,uint64,uint64,uint256,bool,uint256,bytes) validatorProof) returns()
+func (_SequencerRegistry *SequencerRegistryTransactorSession) Activate(pubkey []byte, validatorProof ISequencerRegistryValidatorProof) (*types.Transaction, error) {
+	return _SequencerRegistry.Contract.Activate(&_SequencerRegistry.TransactOpts, pubkey, validatorProof)
 }
 
 // ChangeRegistration is a paid mutator transaction binding the contract method 0x6869e219.
@@ -1061,44 +1160,44 @@ func (_SequencerRegistry *SequencerRegistryTransactorSession) Deactivate(authHas
 
 // ForceDeactivate is a paid mutator transaction binding the contract method 0x5bc95351.
 //
-// Solidity: function forceDeactivate(bytes pubkey, (uint64,uint64,uint64,uint256,bool,uint256,bytes) ) returns()
-func (_SequencerRegistry *SequencerRegistryTransactor) ForceDeactivate(opts *bind.TransactOpts, pubkey []byte, arg1 ISequencerRegistryValidatorProof) (*types.Transaction, error) {
-	return _SequencerRegistry.contract.Transact(opts, "forceDeactivate", pubkey, arg1)
+// Solidity: function forceDeactivate(bytes pubkey, (uint64,uint64,uint64,uint256,bool,uint256,bytes) validatorProof) returns()
+func (_SequencerRegistry *SequencerRegistryTransactor) ForceDeactivate(opts *bind.TransactOpts, pubkey []byte, validatorProof ISequencerRegistryValidatorProof) (*types.Transaction, error) {
+	return _SequencerRegistry.contract.Transact(opts, "forceDeactivate", pubkey, validatorProof)
 }
 
 // ForceDeactivate is a paid mutator transaction binding the contract method 0x5bc95351.
 //
-// Solidity: function forceDeactivate(bytes pubkey, (uint64,uint64,uint64,uint256,bool,uint256,bytes) ) returns()
-func (_SequencerRegistry *SequencerRegistrySession) ForceDeactivate(pubkey []byte, arg1 ISequencerRegistryValidatorProof) (*types.Transaction, error) {
-	return _SequencerRegistry.Contract.ForceDeactivate(&_SequencerRegistry.TransactOpts, pubkey, arg1)
+// Solidity: function forceDeactivate(bytes pubkey, (uint64,uint64,uint64,uint256,bool,uint256,bytes) validatorProof) returns()
+func (_SequencerRegistry *SequencerRegistrySession) ForceDeactivate(pubkey []byte, validatorProof ISequencerRegistryValidatorProof) (*types.Transaction, error) {
+	return _SequencerRegistry.Contract.ForceDeactivate(&_SequencerRegistry.TransactOpts, pubkey, validatorProof)
 }
 
 // ForceDeactivate is a paid mutator transaction binding the contract method 0x5bc95351.
 //
-// Solidity: function forceDeactivate(bytes pubkey, (uint64,uint64,uint64,uint256,bool,uint256,bytes) ) returns()
-func (_SequencerRegistry *SequencerRegistryTransactorSession) ForceDeactivate(pubkey []byte, arg1 ISequencerRegistryValidatorProof) (*types.Transaction, error) {
-	return _SequencerRegistry.Contract.ForceDeactivate(&_SequencerRegistry.TransactOpts, pubkey, arg1)
+// Solidity: function forceDeactivate(bytes pubkey, (uint64,uint64,uint64,uint256,bool,uint256,bytes) validatorProof) returns()
+func (_SequencerRegistry *SequencerRegistryTransactorSession) ForceDeactivate(pubkey []byte, validatorProof ISequencerRegistryValidatorProof) (*types.Transaction, error) {
+	return _SequencerRegistry.Contract.ForceDeactivate(&_SequencerRegistry.TransactOpts, pubkey, validatorProof)
 }
 
-// Init is a paid mutator transaction binding the contract method 0xa4a2a9f6.
+// Init is a paid mutator transaction binding the contract method 0x19ab453c.
 //
-// Solidity: function init(address _owner, uint256 _activationThreshold, uint256 _withdrawalChallengePeriod) returns()
-func (_SequencerRegistry *SequencerRegistryTransactor) Init(opts *bind.TransactOpts, _owner common.Address, _activationThreshold *big.Int, _withdrawalChallengePeriod *big.Int) (*types.Transaction, error) {
-	return _SequencerRegistry.contract.Transact(opts, "init", _owner, _activationThreshold, _withdrawalChallengePeriod)
+// Solidity: function init(address _owner) returns()
+func (_SequencerRegistry *SequencerRegistryTransactor) Init(opts *bind.TransactOpts, _owner common.Address) (*types.Transaction, error) {
+	return _SequencerRegistry.contract.Transact(opts, "init", _owner)
 }
 
-// Init is a paid mutator transaction binding the contract method 0xa4a2a9f6.
+// Init is a paid mutator transaction binding the contract method 0x19ab453c.
 //
-// Solidity: function init(address _owner, uint256 _activationThreshold, uint256 _withdrawalChallengePeriod) returns()
-func (_SequencerRegistry *SequencerRegistrySession) Init(_owner common.Address, _activationThreshold *big.Int, _withdrawalChallengePeriod *big.Int) (*types.Transaction, error) {
-	return _SequencerRegistry.Contract.Init(&_SequencerRegistry.TransactOpts, _owner, _activationThreshold, _withdrawalChallengePeriod)
+// Solidity: function init(address _owner) returns()
+func (_SequencerRegistry *SequencerRegistrySession) Init(_owner common.Address) (*types.Transaction, error) {
+	return _SequencerRegistry.Contract.Init(&_SequencerRegistry.TransactOpts, _owner)
 }
 
-// Init is a paid mutator transaction binding the contract method 0xa4a2a9f6.
+// Init is a paid mutator transaction binding the contract method 0x19ab453c.
 //
-// Solidity: function init(address _owner, uint256 _activationThreshold, uint256 _withdrawalChallengePeriod) returns()
-func (_SequencerRegistry *SequencerRegistryTransactorSession) Init(_owner common.Address, _activationThreshold *big.Int, _withdrawalChallengePeriod *big.Int) (*types.Transaction, error) {
-	return _SequencerRegistry.Contract.Init(&_SequencerRegistry.TransactOpts, _owner, _activationThreshold, _withdrawalChallengePeriod)
+// Solidity: function init(address _owner) returns()
+func (_SequencerRegistry *SequencerRegistryTransactorSession) Init(_owner common.Address) (*types.Transaction, error) {
+	return _SequencerRegistry.Contract.Init(&_SequencerRegistry.TransactOpts, _owner)
 }
 
 // Pause is a paid mutator transaction binding the contract method 0x8456cb59.
@@ -1124,23 +1223,23 @@ func (_SequencerRegistry *SequencerRegistryTransactorSession) Pause() (*types.Tr
 
 // Register is a paid mutator transaction binding the contract method 0xe6e91157.
 //
-// Solidity: function register(address signer, bytes metadata, bytes32 authHash, bytes signature, (uint64,uint64,uint64,uint256,bool,uint256,bytes) ) returns()
-func (_SequencerRegistry *SequencerRegistryTransactor) Register(opts *bind.TransactOpts, signer common.Address, metadata []byte, authHash [32]byte, signature []byte, arg4 ISequencerRegistryValidatorProof) (*types.Transaction, error) {
-	return _SequencerRegistry.contract.Transact(opts, "register", signer, metadata, authHash, signature, arg4)
+// Solidity: function register(address signer, bytes metadata, bytes32 authHash, bytes signature, (uint64,uint64,uint64,uint256,bool,uint256,bytes) validatorProof) returns()
+func (_SequencerRegistry *SequencerRegistryTransactor) Register(opts *bind.TransactOpts, signer common.Address, metadata []byte, authHash [32]byte, signature []byte, validatorProof ISequencerRegistryValidatorProof) (*types.Transaction, error) {
+	return _SequencerRegistry.contract.Transact(opts, "register", signer, metadata, authHash, signature, validatorProof)
 }
 
 // Register is a paid mutator transaction binding the contract method 0xe6e91157.
 //
-// Solidity: function register(address signer, bytes metadata, bytes32 authHash, bytes signature, (uint64,uint64,uint64,uint256,bool,uint256,bytes) ) returns()
-func (_SequencerRegistry *SequencerRegistrySession) Register(signer common.Address, metadata []byte, authHash [32]byte, signature []byte, arg4 ISequencerRegistryValidatorProof) (*types.Transaction, error) {
-	return _SequencerRegistry.Contract.Register(&_SequencerRegistry.TransactOpts, signer, metadata, authHash, signature, arg4)
+// Solidity: function register(address signer, bytes metadata, bytes32 authHash, bytes signature, (uint64,uint64,uint64,uint256,bool,uint256,bytes) validatorProof) returns()
+func (_SequencerRegistry *SequencerRegistrySession) Register(signer common.Address, metadata []byte, authHash [32]byte, signature []byte, validatorProof ISequencerRegistryValidatorProof) (*types.Transaction, error) {
+	return _SequencerRegistry.Contract.Register(&_SequencerRegistry.TransactOpts, signer, metadata, authHash, signature, validatorProof)
 }
 
 // Register is a paid mutator transaction binding the contract method 0xe6e91157.
 //
-// Solidity: function register(address signer, bytes metadata, bytes32 authHash, bytes signature, (uint64,uint64,uint64,uint256,bool,uint256,bytes) ) returns()
-func (_SequencerRegistry *SequencerRegistryTransactorSession) Register(signer common.Address, metadata []byte, authHash [32]byte, signature []byte, arg4 ISequencerRegistryValidatorProof) (*types.Transaction, error) {
-	return _SequencerRegistry.Contract.Register(&_SequencerRegistry.TransactOpts, signer, metadata, authHash, signature, arg4)
+// Solidity: function register(address signer, bytes metadata, bytes32 authHash, bytes signature, (uint64,uint64,uint64,uint256,bool,uint256,bytes) validatorProof) returns()
+func (_SequencerRegistry *SequencerRegistryTransactorSession) Register(signer common.Address, metadata []byte, authHash [32]byte, signature []byte, validatorProof ISequencerRegistryValidatorProof) (*types.Transaction, error) {
+	return _SequencerRegistry.Contract.Register(&_SequencerRegistry.TransactOpts, signer, metadata, authHash, signature, validatorProof)
 }
 
 // RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
@@ -2101,9 +2200,9 @@ func (_SequencerRegistry *SequencerRegistryFilterer) ParsePaused(log types.Log) 
 	return event, nil
 }
 
-// SequencerRegistrySequencerUpdatedIterator is returned from FilterSequencerUpdated and is used to iterate over the raw logs and unpacked data for SequencerUpdated events raised by the SequencerRegistry contract.
-type SequencerRegistrySequencerUpdatedIterator struct {
-	Event *SequencerRegistrySequencerUpdated // Event containing the contract specifics and raw log
+// SequencerRegistrySequencerActivatedIterator is returned from FilterSequencerActivated and is used to iterate over the raw logs and unpacked data for SequencerActivated events raised by the SequencerRegistry contract.
+type SequencerRegistrySequencerActivatedIterator struct {
+	Event *SequencerRegistrySequencerActivated // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -2117,7 +2216,7 @@ type SequencerRegistrySequencerUpdatedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *SequencerRegistrySequencerUpdatedIterator) Next() bool {
+func (it *SequencerRegistrySequencerActivatedIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -2126,7 +2225,7 @@ func (it *SequencerRegistrySequencerUpdatedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(SequencerRegistrySequencerUpdated)
+			it.Event = new(SequencerRegistrySequencerActivated)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -2141,7 +2240,7 @@ func (it *SequencerRegistrySequencerUpdatedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(SequencerRegistrySequencerUpdated)
+		it.Event = new(SequencerRegistrySequencerActivated)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -2157,52 +2256,51 @@ func (it *SequencerRegistrySequencerUpdatedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *SequencerRegistrySequencerUpdatedIterator) Error() error {
+func (it *SequencerRegistrySequencerActivatedIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *SequencerRegistrySequencerUpdatedIterator) Close() error {
+func (it *SequencerRegistrySequencerActivatedIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// SequencerRegistrySequencerUpdated represents a SequencerUpdated event raised by the SequencerRegistry contract.
-type SequencerRegistrySequencerUpdated struct {
-	Sequencer common.Address
-	Enabled   bool
-	Raw       types.Log // Blockchain specific contextual infos
+// SequencerRegistrySequencerActivated represents a SequencerActivated event raised by the SequencerRegistry contract.
+type SequencerRegistrySequencerActivated struct {
+	Signer common.Address
+	Raw    types.Log // Blockchain specific contextual infos
 }
 
-// FilterSequencerUpdated is a free log retrieval operation binding the contract event 0x523de897ac29dfd3280af48d1f26b7222ffeb76627593665a907495621512e5e.
+// FilterSequencerActivated is a free log retrieval operation binding the contract event 0x6630fca1bb566a362b39a495527169e1d413ba6e4dcca7e28e61126bbf596475.
 //
-// Solidity: event SequencerUpdated(address indexed sequencer, bool enabled)
-func (_SequencerRegistry *SequencerRegistryFilterer) FilterSequencerUpdated(opts *bind.FilterOpts, sequencer []common.Address) (*SequencerRegistrySequencerUpdatedIterator, error) {
+// Solidity: event SequencerActivated(address indexed signer)
+func (_SequencerRegistry *SequencerRegistryFilterer) FilterSequencerActivated(opts *bind.FilterOpts, signer []common.Address) (*SequencerRegistrySequencerActivatedIterator, error) {
 
-	var sequencerRule []interface{}
-	for _, sequencerItem := range sequencer {
-		sequencerRule = append(sequencerRule, sequencerItem)
+	var signerRule []interface{}
+	for _, signerItem := range signer {
+		signerRule = append(signerRule, signerItem)
 	}
 
-	logs, sub, err := _SequencerRegistry.contract.FilterLogs(opts, "SequencerUpdated", sequencerRule)
+	logs, sub, err := _SequencerRegistry.contract.FilterLogs(opts, "SequencerActivated", signerRule)
 	if err != nil {
 		return nil, err
 	}
-	return &SequencerRegistrySequencerUpdatedIterator{contract: _SequencerRegistry.contract, event: "SequencerUpdated", logs: logs, sub: sub}, nil
+	return &SequencerRegistrySequencerActivatedIterator{contract: _SequencerRegistry.contract, event: "SequencerActivated", logs: logs, sub: sub}, nil
 }
 
-// WatchSequencerUpdated is a free log subscription operation binding the contract event 0x523de897ac29dfd3280af48d1f26b7222ffeb76627593665a907495621512e5e.
+// WatchSequencerActivated is a free log subscription operation binding the contract event 0x6630fca1bb566a362b39a495527169e1d413ba6e4dcca7e28e61126bbf596475.
 //
-// Solidity: event SequencerUpdated(address indexed sequencer, bool enabled)
-func (_SequencerRegistry *SequencerRegistryFilterer) WatchSequencerUpdated(opts *bind.WatchOpts, sink chan<- *SequencerRegistrySequencerUpdated, sequencer []common.Address) (event.Subscription, error) {
+// Solidity: event SequencerActivated(address indexed signer)
+func (_SequencerRegistry *SequencerRegistryFilterer) WatchSequencerActivated(opts *bind.WatchOpts, sink chan<- *SequencerRegistrySequencerActivated, signer []common.Address) (event.Subscription, error) {
 
-	var sequencerRule []interface{}
-	for _, sequencerItem := range sequencer {
-		sequencerRule = append(sequencerRule, sequencerItem)
+	var signerRule []interface{}
+	for _, signerItem := range signer {
+		signerRule = append(signerRule, signerItem)
 	}
 
-	logs, sub, err := _SequencerRegistry.contract.WatchLogs(opts, "SequencerUpdated", sequencerRule)
+	logs, sub, err := _SequencerRegistry.contract.WatchLogs(opts, "SequencerActivated", signerRule)
 	if err != nil {
 		return nil, err
 	}
@@ -2212,8 +2310,8 @@ func (_SequencerRegistry *SequencerRegistryFilterer) WatchSequencerUpdated(opts 
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(SequencerRegistrySequencerUpdated)
-				if err := _SequencerRegistry.contract.UnpackLog(event, "SequencerUpdated", log); err != nil {
+				event := new(SequencerRegistrySequencerActivated)
+				if err := _SequencerRegistry.contract.UnpackLog(event, "SequencerActivated", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -2234,12 +2332,455 @@ func (_SequencerRegistry *SequencerRegistryFilterer) WatchSequencerUpdated(opts 
 	}), nil
 }
 
-// ParseSequencerUpdated is a log parse operation binding the contract event 0x523de897ac29dfd3280af48d1f26b7222ffeb76627593665a907495621512e5e.
+// ParseSequencerActivated is a log parse operation binding the contract event 0x6630fca1bb566a362b39a495527169e1d413ba6e4dcca7e28e61126bbf596475.
 //
-// Solidity: event SequencerUpdated(address indexed sequencer, bool enabled)
-func (_SequencerRegistry *SequencerRegistryFilterer) ParseSequencerUpdated(log types.Log) (*SequencerRegistrySequencerUpdated, error) {
-	event := new(SequencerRegistrySequencerUpdated)
-	if err := _SequencerRegistry.contract.UnpackLog(event, "SequencerUpdated", log); err != nil {
+// Solidity: event SequencerActivated(address indexed signer)
+func (_SequencerRegistry *SequencerRegistryFilterer) ParseSequencerActivated(log types.Log) (*SequencerRegistrySequencerActivated, error) {
+	event := new(SequencerRegistrySequencerActivated)
+	if err := _SequencerRegistry.contract.UnpackLog(event, "SequencerActivated", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// SequencerRegistrySequencerChangedIterator is returned from FilterSequencerChanged and is used to iterate over the raw logs and unpacked data for SequencerChanged events raised by the SequencerRegistry contract.
+type SequencerRegistrySequencerChangedIterator struct {
+	Event *SequencerRegistrySequencerChanged // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *SequencerRegistrySequencerChangedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(SequencerRegistrySequencerChanged)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(SequencerRegistrySequencerChanged)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *SequencerRegistrySequencerChangedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *SequencerRegistrySequencerChangedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// SequencerRegistrySequencerChanged represents a SequencerChanged event raised by the SequencerRegistry contract.
+type SequencerRegistrySequencerChanged struct {
+	OldSigner common.Address
+	NewSigner common.Address
+	Pubkey    []byte
+	Raw       types.Log // Blockchain specific contextual infos
+}
+
+// FilterSequencerChanged is a free log retrieval operation binding the contract event 0xc83f03300ac02196ac22ef96e9666a948b88b2c4772c4c3c3baa2f84a0eb5c9b.
+//
+// Solidity: event SequencerChanged(address indexed oldSigner, address indexed newSigner, bytes pubkey)
+func (_SequencerRegistry *SequencerRegistryFilterer) FilterSequencerChanged(opts *bind.FilterOpts, oldSigner []common.Address, newSigner []common.Address) (*SequencerRegistrySequencerChangedIterator, error) {
+
+	var oldSignerRule []interface{}
+	for _, oldSignerItem := range oldSigner {
+		oldSignerRule = append(oldSignerRule, oldSignerItem)
+	}
+	var newSignerRule []interface{}
+	for _, newSignerItem := range newSigner {
+		newSignerRule = append(newSignerRule, newSignerItem)
+	}
+
+	logs, sub, err := _SequencerRegistry.contract.FilterLogs(opts, "SequencerChanged", oldSignerRule, newSignerRule)
+	if err != nil {
+		return nil, err
+	}
+	return &SequencerRegistrySequencerChangedIterator{contract: _SequencerRegistry.contract, event: "SequencerChanged", logs: logs, sub: sub}, nil
+}
+
+// WatchSequencerChanged is a free log subscription operation binding the contract event 0xc83f03300ac02196ac22ef96e9666a948b88b2c4772c4c3c3baa2f84a0eb5c9b.
+//
+// Solidity: event SequencerChanged(address indexed oldSigner, address indexed newSigner, bytes pubkey)
+func (_SequencerRegistry *SequencerRegistryFilterer) WatchSequencerChanged(opts *bind.WatchOpts, sink chan<- *SequencerRegistrySequencerChanged, oldSigner []common.Address, newSigner []common.Address) (event.Subscription, error) {
+
+	var oldSignerRule []interface{}
+	for _, oldSignerItem := range oldSigner {
+		oldSignerRule = append(oldSignerRule, oldSignerItem)
+	}
+	var newSignerRule []interface{}
+	for _, newSignerItem := range newSigner {
+		newSignerRule = append(newSignerRule, newSignerItem)
+	}
+
+	logs, sub, err := _SequencerRegistry.contract.WatchLogs(opts, "SequencerChanged", oldSignerRule, newSignerRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(SequencerRegistrySequencerChanged)
+				if err := _SequencerRegistry.contract.UnpackLog(event, "SequencerChanged", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseSequencerChanged is a log parse operation binding the contract event 0xc83f03300ac02196ac22ef96e9666a948b88b2c4772c4c3c3baa2f84a0eb5c9b.
+//
+// Solidity: event SequencerChanged(address indexed oldSigner, address indexed newSigner, bytes pubkey)
+func (_SequencerRegistry *SequencerRegistryFilterer) ParseSequencerChanged(log types.Log) (*SequencerRegistrySequencerChanged, error) {
+	event := new(SequencerRegistrySequencerChanged)
+	if err := _SequencerRegistry.contract.UnpackLog(event, "SequencerChanged", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// SequencerRegistrySequencerDeactivatedIterator is returned from FilterSequencerDeactivated and is used to iterate over the raw logs and unpacked data for SequencerDeactivated events raised by the SequencerRegistry contract.
+type SequencerRegistrySequencerDeactivatedIterator struct {
+	Event *SequencerRegistrySequencerDeactivated // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *SequencerRegistrySequencerDeactivatedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(SequencerRegistrySequencerDeactivated)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(SequencerRegistrySequencerDeactivated)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *SequencerRegistrySequencerDeactivatedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *SequencerRegistrySequencerDeactivatedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// SequencerRegistrySequencerDeactivated represents a SequencerDeactivated event raised by the SequencerRegistry contract.
+type SequencerRegistrySequencerDeactivated struct {
+	Signer common.Address
+	Raw    types.Log // Blockchain specific contextual infos
+}
+
+// FilterSequencerDeactivated is a free log retrieval operation binding the contract event 0xe511138637c40bb6949783dee2df37335f8bad4815aba500f4f429adb64f1ade.
+//
+// Solidity: event SequencerDeactivated(address indexed signer)
+func (_SequencerRegistry *SequencerRegistryFilterer) FilterSequencerDeactivated(opts *bind.FilterOpts, signer []common.Address) (*SequencerRegistrySequencerDeactivatedIterator, error) {
+
+	var signerRule []interface{}
+	for _, signerItem := range signer {
+		signerRule = append(signerRule, signerItem)
+	}
+
+	logs, sub, err := _SequencerRegistry.contract.FilterLogs(opts, "SequencerDeactivated", signerRule)
+	if err != nil {
+		return nil, err
+	}
+	return &SequencerRegistrySequencerDeactivatedIterator{contract: _SequencerRegistry.contract, event: "SequencerDeactivated", logs: logs, sub: sub}, nil
+}
+
+// WatchSequencerDeactivated is a free log subscription operation binding the contract event 0xe511138637c40bb6949783dee2df37335f8bad4815aba500f4f429adb64f1ade.
+//
+// Solidity: event SequencerDeactivated(address indexed signer)
+func (_SequencerRegistry *SequencerRegistryFilterer) WatchSequencerDeactivated(opts *bind.WatchOpts, sink chan<- *SequencerRegistrySequencerDeactivated, signer []common.Address) (event.Subscription, error) {
+
+	var signerRule []interface{}
+	for _, signerItem := range signer {
+		signerRule = append(signerRule, signerItem)
+	}
+
+	logs, sub, err := _SequencerRegistry.contract.WatchLogs(opts, "SequencerDeactivated", signerRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(SequencerRegistrySequencerDeactivated)
+				if err := _SequencerRegistry.contract.UnpackLog(event, "SequencerDeactivated", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseSequencerDeactivated is a log parse operation binding the contract event 0xe511138637c40bb6949783dee2df37335f8bad4815aba500f4f429adb64f1ade.
+//
+// Solidity: event SequencerDeactivated(address indexed signer)
+func (_SequencerRegistry *SequencerRegistryFilterer) ParseSequencerDeactivated(log types.Log) (*SequencerRegistrySequencerDeactivated, error) {
+	event := new(SequencerRegistrySequencerDeactivated)
+	if err := _SequencerRegistry.contract.UnpackLog(event, "SequencerDeactivated", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// SequencerRegistrySequencerRegisteredIterator is returned from FilterSequencerRegistered and is used to iterate over the raw logs and unpacked data for SequencerRegistered events raised by the SequencerRegistry contract.
+type SequencerRegistrySequencerRegisteredIterator struct {
+	Event *SequencerRegistrySequencerRegistered // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *SequencerRegistrySequencerRegisteredIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(SequencerRegistrySequencerRegistered)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(SequencerRegistrySequencerRegistered)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *SequencerRegistrySequencerRegisteredIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *SequencerRegistrySequencerRegisteredIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// SequencerRegistrySequencerRegistered represents a SequencerRegistered event raised by the SequencerRegistry contract.
+type SequencerRegistrySequencerRegistered struct {
+	Signer common.Address
+	Pubkey []byte
+	Raw    types.Log // Blockchain specific contextual infos
+}
+
+// FilterSequencerRegistered is a free log retrieval operation binding the contract event 0x9a8d0d88dd19eadc11fc14c4044e8f378ff8d10056bc126e2c3283339617b98d.
+//
+// Solidity: event SequencerRegistered(address indexed signer, bytes pubkey)
+func (_SequencerRegistry *SequencerRegistryFilterer) FilterSequencerRegistered(opts *bind.FilterOpts, signer []common.Address) (*SequencerRegistrySequencerRegisteredIterator, error) {
+
+	var signerRule []interface{}
+	for _, signerItem := range signer {
+		signerRule = append(signerRule, signerItem)
+	}
+
+	logs, sub, err := _SequencerRegistry.contract.FilterLogs(opts, "SequencerRegistered", signerRule)
+	if err != nil {
+		return nil, err
+	}
+	return &SequencerRegistrySequencerRegisteredIterator{contract: _SequencerRegistry.contract, event: "SequencerRegistered", logs: logs, sub: sub}, nil
+}
+
+// WatchSequencerRegistered is a free log subscription operation binding the contract event 0x9a8d0d88dd19eadc11fc14c4044e8f378ff8d10056bc126e2c3283339617b98d.
+//
+// Solidity: event SequencerRegistered(address indexed signer, bytes pubkey)
+func (_SequencerRegistry *SequencerRegistryFilterer) WatchSequencerRegistered(opts *bind.WatchOpts, sink chan<- *SequencerRegistrySequencerRegistered, signer []common.Address) (event.Subscription, error) {
+
+	var signerRule []interface{}
+	for _, signerItem := range signer {
+		signerRule = append(signerRule, signerItem)
+	}
+
+	logs, sub, err := _SequencerRegistry.contract.WatchLogs(opts, "SequencerRegistered", signerRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(SequencerRegistrySequencerRegistered)
+				if err := _SequencerRegistry.contract.UnpackLog(event, "SequencerRegistered", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseSequencerRegistered is a log parse operation binding the contract event 0x9a8d0d88dd19eadc11fc14c4044e8f378ff8d10056bc126e2c3283339617b98d.
+//
+// Solidity: event SequencerRegistered(address indexed signer, bytes pubkey)
+func (_SequencerRegistry *SequencerRegistryFilterer) ParseSequencerRegistered(log types.Log) (*SequencerRegistrySequencerRegistered, error) {
+	event := new(SequencerRegistrySequencerRegistered)
+	if err := _SequencerRegistry.contract.UnpackLog(event, "SequencerRegistered", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

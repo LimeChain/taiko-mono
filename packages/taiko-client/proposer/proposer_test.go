@@ -16,8 +16,9 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/taikoxyz/taiko-mono/packages/taiko-client/pkg/mock"
+
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings"
-	"github.com/taikoxyz/taiko-mono/packages/taiko-client/bindings/encoding"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/chain_syncer/beaconsync"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/chain_syncer/blob"
 	"github.com/taikoxyz/taiko-mono/packages/taiko-client/driver/state"
@@ -65,19 +66,18 @@ func (s *ProposerTestSuite) SetupTest() {
 
 	s.Nil(p.InitFromConfig(ctx, &Config{
 		ClientConfig: &rpc.ClientConfig{
-			L1Endpoint:        os.Getenv("L1_NODE_WS_ENDPOINT"),
-			L2Endpoint:        os.Getenv("L2_EXECUTION_ENGINE_HTTP_ENDPOINT"),
-			L2EngineEndpoint:  os.Getenv("L2_EXECUTION_ENGINE_AUTH_ENDPOINT"),
-			JwtSecret:         string(jwtSecret),
-			TaikoL1Address:    common.HexToAddress(os.Getenv("TAIKO_L1_ADDRESS")),
-			TaikoL2Address:    common.HexToAddress(os.Getenv("TAIKO_L2_ADDRESS")),
-			TaikoTokenAddress: common.HexToAddress(os.Getenv("TAIKO_TOKEN_ADDRESS")),
-			ProverSetAddress:  common.HexToAddress(os.Getenv("PROVER_SET_ADDRESS")),
+			L1Endpoint:               os.Getenv("L1_NODE_WS_ENDPOINT"),
+			L2Endpoint:               os.Getenv("L2_EXECUTION_ENGINE_HTTP_ENDPOINT"),
+			L2EngineEndpoint:         os.Getenv("L2_EXECUTION_ENGINE_AUTH_ENDPOINT"),
+			JwtSecret:                string(jwtSecret),
+			TaikoL1Address:           common.HexToAddress(os.Getenv("TAIKO_L1_ADDRESS")),
+			TaikoL2Address:           common.HexToAddress(os.Getenv("TAIKO_L2_ADDRESS")),
+			TaikoTokenAddress:        common.HexToAddress(os.Getenv("TAIKO_TOKEN_ADDRESS")),
+			ProverSetAddress:         common.HexToAddress(os.Getenv("PROVER_SET_ADDRESS")),
+			SequencerRegistryAddress: common.HexToAddress(os.Getenv("SEQUENCER_REGISTRY")),
 		},
 		L1ProposerPrivKey:          l1ProposerPrivKey,
 		L2SuggestedFeeRecipient:    common.HexToAddress(os.Getenv("L2_SUGGESTED_FEE_RECIPIENT")),
-		MinProposingInternal:       0,
-		ProposeInterval:            1024 * time.Hour,
 		MaxProposedTxListsPerEpoch: 1,
 		ProverEndpoints:            s.ProverEndpoints,
 		OptimisticTierFee:          common.Big256,
@@ -105,6 +105,8 @@ func (s *ProposerTestSuite) SetupTest() {
 		},
 	}))
 
+	p.RPC.L1MevBoost = mock.NewMevBoostClient()
+	p.RPC.L1Beacon = mock.NewBeaconClient()
 	s.p = p
 	s.cancel = cancel
 }
@@ -115,7 +117,7 @@ func (s *ProposerTestSuite) TestProposeTxLists() {
 	cfg := s.p.Config
 
 	txBuilder := builder.NewBlobTransactionBuilder(
-		p.rpc,
+		p.RPC,
 		p.L1ProposerPrivKey,
 		p.proverSelector,
 		p.Config.L1BlockBuilderTip,
@@ -129,7 +131,7 @@ func (s *ProposerTestSuite) TestProposeTxLists() {
 	emptyTxListBytes, err := rlp.EncodeToBytes(types.Transactions{})
 	s.Nil(err)
 	txListsBytes := [][]byte{emptyTxListBytes}
-	txCandidates := make([]txmgr.TxCandidate, len(txListsBytes))
+	txCandidates := make([]builder.TxCandidate, len(txListsBytes))
 	for i, txListBytes := range txListsBytes {
 		compressedTxListBytes, err := utils.Compress(txListBytes)
 		if err != nil {
@@ -155,9 +157,8 @@ func (s *ProposerTestSuite) TestProposeTxLists() {
 	}
 
 	for _, txCandidate := range txCandidates {
-		receipt, err := p.txmgr.Send(ctx, txCandidate)
+		err := p.txmgr.Send(ctx, txCandidate)
 		s.Nil(err)
-		s.Nil(encoding.TryParsingCustomErrorFromReceipt(ctx, p.rpc.L1, p.proposerAddress, receipt))
 	}
 }
 
@@ -177,14 +178,7 @@ func (s *ProposerTestSuite) TestProposeOpNoEmptyBlock() {
 
 	var preBuiltTxList []*miner.PreBuiltTxList
 	for i := 0; i < 3 && len(preBuiltTxList) == 0; i++ {
-		preBuiltTxList, err = s.RPCClient.FetchTxList(
-			context.Background(),
-			p.proposerAddress,
-			p.protocolConfigs.BlockMaxGasLimit,
-			rpc.BlockMaxTxListBytes,
-			p.LocalAddresses,
-			p.MaxProposedTxListsPerEpoch,
-		)
+		preBuiltTxList, err = s.RPCClient.FetchTxList(context.Background(), uint64(i))
 		time.Sleep(time.Second)
 	}
 	s.Nil(err)
@@ -211,8 +205,7 @@ func (s *ProposerTestSuite) TestProposeOpNoEmptyBlock() {
 	p.LocalAddressesOnly = false
 	p.MinGasUsed = blockMinGasLimit
 	p.MinTxListBytes = blockMinTxListBytes
-	p.ProposeInterval = time.Second
-	p.MinProposingInternal = time.Minute
+	p.PreconfDelay = time.Second
 	s.Nil(p.ProposeOp(context.Background()))
 }
 
@@ -224,7 +217,7 @@ func (s *ProposerTestSuite) TestProposeOp() {
 	// Propose txs in L2 execution engine's mempool
 	sink := make(chan *bindings.TaikoL1ClientBlockProposed)
 
-	sub, err := s.p.rpc.TaikoL1.WatchBlockProposed(nil, sink, nil, nil)
+	sub, err := s.p.RPC.TaikoL1.WatchBlockProposed(nil, sink, nil, nil)
 	s.Nil(err)
 	defer func() {
 		sub.Unsubscribe()
@@ -232,7 +225,7 @@ func (s *ProposerTestSuite) TestProposeOp() {
 	}()
 
 	to := common.BytesToAddress(testutils.RandomBytes(32))
-	_, err = testutils.SendDynamicFeeTx(s.p.rpc.L2, s.TestAddrPrivKey, &to, common.Big1, nil)
+	_, err = testutils.SendDynamicFeeTx(s.p.RPC.L2, s.TestAddrPrivKey, &to, common.Big1, nil)
 	s.Nil(err)
 
 	s.Nil(s.p.ProposeOp(context.Background()))
@@ -241,17 +234,16 @@ func (s *ProposerTestSuite) TestProposeOp() {
 
 	s.Equal(event.Meta.Coinbase, s.p.L2SuggestedFeeRecipient)
 
-	_, isPending, err := s.p.rpc.L1.TransactionByHash(context.Background(), event.Raw.TxHash)
+	_, isPending, err := s.p.RPC.L1.TransactionByHash(context.Background(), event.Raw.TxHash)
 	s.Nil(err)
 	s.False(isPending)
 
-	receipt, err := s.p.rpc.L1.TransactionReceipt(context.Background(), event.Raw.TxHash)
+	receipt, err := s.p.RPC.L1.TransactionReceipt(context.Background(), event.Raw.TxHash)
 	s.Nil(err)
 	s.Equal(types.ReceiptStatusSuccessful, receipt.Status)
 }
 
 func (s *ProposerTestSuite) TestProposeEmptyBlockOp() {
-	s.p.MinProposingInternal = 1 * time.Second
 	s.p.lastProposedAt = time.Now().Add(-10 * time.Second)
 	s.Nil(s.p.ProposeOp(context.Background()))
 }
@@ -264,14 +256,6 @@ func (s *ProposerTestSuite) TestAssignProverSuccessFirstRound() {
 
 	s.Nil(err)
 	s.Equal(fee.Uint64(), s.p.OptimisticTierFee.Uint64())
-}
-
-func (s *ProposerTestSuite) TestUpdateProposingTicker() {
-	s.p.ProposeInterval = 1 * time.Hour
-	s.NotPanics(s.p.updateProposingTicker)
-
-	s.p.ProposeInterval = 0
-	s.NotPanics(s.p.updateProposingTicker)
 }
 
 func (s *ProposerTestSuite) TestStartClose() {

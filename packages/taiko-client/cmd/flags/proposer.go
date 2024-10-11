@@ -15,6 +15,13 @@ var (
 		Category: proposerCategory,
 		EnvVars:  []string{"L1_PROPOSER_PRIV_KEY"},
 	}
+	L1MevBoostEndpoint = &cli.StringFlag{
+		Name:     "l1.mevBoost",
+		Usage:    "HTTP endpoint of a L1 mev-boost service",
+		Required: true,
+		Category: proposerCategory,
+		EnvVars:  []string{"L1_MEV_BOOST"},
+	}
 	ProverEndpoints = &cli.StringFlag{
 		Name:     "proverEndpoints",
 		Usage:    "Comma-delineated list of prover endpoints proposer should query when attempting to propose a block",
@@ -28,6 +35,13 @@ var (
 		Required: true,
 		Category: proposerCategory,
 		EnvVars:  []string{"L2_SUGGESTED_FEE_RECIPIENT"},
+	}
+	PreconfDelay = &cli.DurationFlag{
+		Name:     "epoch.interval",
+		Usage:    "Time delay to send L2 preconf transaction",
+		Category: proposerCategory,
+		Value:    8,
+		EnvVars:  []string{"PRECONF_DELAY"},
 	}
 	SequencerRegistryAddress = &cli.StringFlag{
 		Name:     "sequencerRegistry",
@@ -67,14 +81,6 @@ var (
 		Value:    3,
 		EnvVars:  []string{"TIER_FEE_MAX_PRICE_BUMPS"},
 	}
-	// Proposing epoch related.
-	ProposeInterval = &cli.DurationFlag{
-		Name:     "epoch.interval",
-		Usage:    "Time interval to propose L2 pending transactions",
-		Category: proposerCategory,
-		Value:    0,
-		EnvVars:  []string{"EPOCH_INTERVAL"},
-	}
 	MinGasUsed = &cli.Uint64Flag{
 		Name:     "epoch.minGasUsed",
 		Usage:    "Minimum gas used for a transactions list to propose",
@@ -89,12 +95,19 @@ var (
 		Value:    0,
 		EnvVars:  []string{"EPOCH_MIN_TX_LIST_BYTES"},
 	}
-	MinProposingInternal = &cli.DurationFlag{
-		Name:     "epoch.minProposingInterval",
-		Usage:    "Minimum time interval to force proposing a block, even if there are no transaction in mempool",
+	MaxProposerDutiesSlots = &cli.Uint64Flag{
+		Name:     "epoch.maxProposerDutiesSlots",
+		Usage:    "The count of the proposer duties slots the proposer will track if it can propose a block",
 		Category: proposerCategory,
-		Value:    0,
-		EnvVars:  []string{"EPOCH_MIN_PROPOSING_INTERNAL"},
+		Value:    32,
+		EnvVars:  []string{"EPOCH_MAX_PROPOSER_DUTIES_SLOTS"},
+	}
+	ProposerDutiesUpdateFreq = &cli.Uint64Flag{
+		Name:     "epoch.proposerDutiesUpdateFreq",
+		Usage:    "The frequency of updating proposer duties slots",
+		Category: proposerCategory,
+		Value:    24,
+		EnvVars:  []string{"EPOCH_PROPOSER_DUTIES_UPDATE_FREQ"},
 	}
 	// Proposing metadata related.
 	ExtraData = &cli.StringFlag{
@@ -150,20 +163,23 @@ var (
 
 // ProposerFlags All proposer flags.
 var ProposerFlags = MergeFlags(CommonFlags, []cli.Flag{
+	L1BeaconEndpoint,
 	L2HTTPEndpoint,
 	L2AuthEndpoint,
 	JWTSecret,
 	TaikoTokenAddress,
 	L1ProposerPrivKey,
+	L1MevBoostEndpoint,
 	L2SuggestedFeeRecipient,
-	ProposeInterval,
+	PreconfDelay,
 	TxPoolLocals,
 	TxPoolLocalsOnly,
 	ExtraData,
 	MinGasUsed,
 	MinTxListBytes,
-	MinProposingInternal,
 	MaxProposedTxListsPerEpoch,
+	MaxProposerDutiesSlots,
+	ProposerDutiesUpdateFreq,
 	ProverEndpoints,
 	OptimisticTierFee,
 	SgxTierFee,

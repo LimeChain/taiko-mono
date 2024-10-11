@@ -14,24 +14,17 @@ import (
 	"github.com/prysmaticlabs/prysm/v4/api/client/beacon"
 	"github.com/prysmaticlabs/prysm/v4/beacon-chain/rpc/eth/blob"
 	"github.com/prysmaticlabs/prysm/v4/beacon-chain/rpc/eth/config"
+
+	"github.com/taikoxyz/taiko-mono/packages/taiko-client/types"
 )
 
 var (
 	// Request urls.
-	sidecarsRequestURL = "/eth/v1/beacon/blob_sidecars/%d"
-	genesisRequestURL  = "/eth/v1/beacon/genesis"
-	getConfigSpecPath  = "/eth/v1/config/spec"
+	sidecarsRequestURL       = "/eth/v1/beacon/blob_sidecars/%d"
+	proposerDutiesRequestURL = "/eth/v1/validator/duties/proposer/%d"
+	genesisRequestURL        = "/eth/v1/beacon/genesis"
+	getConfigSpecPath        = "/eth/v1/config/spec"
 )
-
-type ConfigSpec struct {
-	SecondsPerSlot string `json:"SECONDS_PER_SLOT"`
-}
-
-type GenesisResponse struct {
-	Data struct {
-		GenesisTime string `json:"genesis_time"`
-	} `json:"data"`
-}
 
 type BeaconClient struct {
 	*beacon.Client
@@ -39,6 +32,17 @@ type BeaconClient struct {
 	timeout        time.Duration
 	genesisTime    uint64
 	secondsPerSlot uint64
+	slotsPerEpoch  uint64
+}
+
+type IBeaconClient interface {
+	GetBlobs(ctx context.Context, time uint64) ([]*blob.Sidecar, error)
+	GetNextProposerDuties(ctx context.Context, headSlot uint64, maxSlots uint64) ([]*types.ProposerDuty, error)
+	GetL1HeadSlot() uint64
+	GetTimestampBySlot(slot uint64) uint64
+	GetGenesisTimestamp() uint64
+	GetSecondsPerSlot() uint64
+	GetSlotsPerEpoch() uint64
 }
 
 // NewBeaconClient returns a new beacon client.
@@ -52,7 +56,7 @@ func NewBeaconClient(endpoint string, timeout time.Duration) (*BeaconClient, err
 	defer cancel()
 
 	// Get the genesis time.
-	var genesisDetail *GenesisResponse
+	var genesisDetail *types.GenesisResponse
 	resBytes, err := cli.Get(ctx, cli.BaseURL().Path+genesisRequestURL)
 	if err != nil {
 		return nil, err
@@ -80,9 +84,15 @@ func NewBeaconClient(endpoint string, timeout time.Duration) (*BeaconClient, err
 		return nil, err
 	}
 
-	log.Info("L1 seconds per slot", "seconds", secondsPerSlot)
+	slotsPerEpoch, err := strconv.Atoi(spec.Data.(map[string]interface{})["SLOTS_PER_EPOCH"].(string))
+	if err != nil {
+		return nil, err
+	}
 
-	return &BeaconClient{cli, timeout, uint64(genesisTime), uint64(secondsPerSlot)}, nil
+	log.Info("L1 seconds per slot", "seconds", secondsPerSlot)
+	log.Info("L1 slots per epoch", "slots", slotsPerEpoch)
+
+	return &BeaconClient{cli, timeout, uint64(genesisTime), uint64(secondsPerSlot), uint64(slotsPerEpoch)}, nil
 }
 
 // GetBlobs returns the sidecars for a given slot.
@@ -128,4 +138,91 @@ func getConfigSpec(ctx context.Context, c *beacon.Client) (*config.GetSpecRespon
 		return nil, err
 	}
 	return fsr, nil
+}
+
+func (c *BeaconClient) GetNextProposerDuties(
+	ctx context.Context,
+	headSlot uint64,
+	maxSlots uint64) ([]*types.ProposerDuty, error) {
+	ctxWithTimeout, cancel := ctxWithTimeoutOrDefault(ctx, c.timeout)
+	nextDuties := make([]*types.ProposerDuty, 0)
+	defer cancel()
+
+	epochBegin := headSlot / c.slotsPerEpoch
+	epochEnd := (headSlot + maxSlots - 1) / c.slotsPerEpoch
+
+	log.Info("Requesting proposer duties", "epochBegin", epochBegin, "epochEnd", epochEnd)
+
+	resBytes, err := c.Get(ctxWithTimeout, c.BaseURL().Path+fmt.Sprintf(proposerDutiesRequestURL, epochBegin))
+	if err != nil {
+		return nil, err
+	}
+
+	var duties *types.ProposerDutiesResponse
+	if err = json.Unmarshal(resBytes, &duties); err != nil {
+		return nil, err
+	}
+
+	nextDuties = append(nextDuties, duties.Data...)
+
+	if epochEnd != epochBegin {
+		resBytes, err = c.Get(ctxWithTimeout, c.BaseURL().Path+fmt.Sprintf(proposerDutiesRequestURL, epochEnd))
+		if err != nil {
+			log.Error("Requesting duties for epochEnd", "epochEnd", epochEnd, "error", err)
+		} else {
+			var duties *types.ProposerDutiesResponse
+			if err = json.Unmarshal(resBytes, &duties); err != nil {
+				return nil, err
+			}
+			nextDuties = append(nextDuties, duties.Data...)
+		}
+	}
+
+	nextDuties = c.filterProposerDuties(nextDuties, headSlot, maxSlots)
+
+	log.Info("Received proposer duties", "duties", len(nextDuties))
+
+	return nextDuties, nil
+}
+
+func (c *BeaconClient) filterProposerDuties(
+	duties []*types.ProposerDuty,
+	headSlot uint64,
+	maxSlots uint64,
+) []*types.ProposerDuty {
+	filteredDuties := make([]*types.ProposerDuty, 0)
+	for _, duty := range duties {
+		slot, err := strconv.Atoi(duty.Slot)
+		if err != nil {
+			log.Error("Failed to convert slot to integer", "slot", duty.Slot, "error", err)
+			continue
+		}
+		if uint64(slot) >= headSlot && uint64(slot) < (headSlot+maxSlots) {
+			filteredDuties = append(filteredDuties, duty)
+		}
+	}
+	return filteredDuties
+}
+
+func (c *BeaconClient) GetL1HeadSlot() uint64 {
+	now := time.Now().Unix()
+	elapsedTime := uint64(now) - c.genesisTime
+	l1HeadSlot := elapsedTime / c.secondsPerSlot
+	return l1HeadSlot
+}
+
+func (c *BeaconClient) GetTimestampBySlot(slot uint64) uint64 {
+	return c.genesisTime + slot*c.secondsPerSlot
+}
+
+func (c *BeaconClient) GetGenesisTimestamp() uint64 {
+	return c.genesisTime
+}
+
+func (c *BeaconClient) GetSecondsPerSlot() uint64 {
+	return c.secondsPerSlot
+}
+
+func (c *BeaconClient) GetSlotsPerEpoch() uint64 {
+	return c.slotsPerEpoch
 }

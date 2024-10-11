@@ -17,15 +17,18 @@ import (
 )
 
 var (
-	l1Endpoint      = os.Getenv("L1_NODE_WS_ENDPOINT")
-	l2Endpoint      = os.Getenv("L2_EXECUTION_ENGINE_HTTP_ENDPOINT")
-	taikoL1         = os.Getenv("TAIKO_L1_ADDRESS")
-	taikoL2         = os.Getenv("TAIKO_L2_ADDRESS")
-	taikoToken      = os.Getenv("TAIKO_TOKEN_ADDRESS")
-	proverEndpoints = "http://localhost:9876,http://localhost:1234"
-	tierFee         = 100.0
-	proposeInterval = "10s"
-	rpcTimeout      = "5s"
+	l1Endpoint         = os.Getenv("L1_NODE_WS_ENDPOINT")
+	l1BeaconEndpoint   = os.Getenv("L1_NODE_HTTP_ENDPOINT")
+	l1MevBoostEndpoint = os.Getenv("L1_MEV_BOOST")
+	l2Endpoint         = os.Getenv("L2_EXECUTION_ENGINE_HTTP_ENDPOINT")
+	taikoL1            = os.Getenv("TAIKO_L1_ADDRESS")
+	taikoL2            = os.Getenv("TAIKO_L2_ADDRESS")
+	sequencerRegistry  = os.Getenv("SEQUENCER_REGISTRY")
+	taikoToken         = os.Getenv("TAIKO_TOKEN_ADDRESS")
+	proverEndpoints    = "http://localhost:9876,http://localhost:1234"
+	tierFee            = 100.0
+	preconfDelay       = "8s"
+	rpcTimeout         = "5s"
 )
 
 func (s *ProposerTestSuite) TestNewConfigFromCliContext() {
@@ -38,13 +41,16 @@ func (s *ProposerTestSuite) TestNewConfigFromCliContext() {
 		c, err := NewConfigFromCliContext(cliCtx)
 		s.Nil(err)
 		s.Equal(l1Endpoint, c.L1Endpoint)
+		s.Equal(l1BeaconEndpoint, c.L1BeaconEndpoint)
+		s.Equal(l1MevBoostEndpoint, c.L1MevBoostEndpoint)
 		s.Equal(l2Endpoint, c.L2Endpoint)
 		s.Equal(taikoL1, c.TaikoL1Address.String())
 		s.Equal(taikoL2, c.TaikoL2Address.String())
+		s.Equal(sequencerRegistry, c.SequencerRegistryAddress.String())
 		s.Equal(taikoToken, c.TaikoTokenAddress.String())
 		s.Equal(goldenTouchAddress, crypto.PubkeyToAddress(c.L1ProposerPrivKey.PublicKey))
 		s.Equal(goldenTouchAddress, c.L2SuggestedFeeRecipient)
-		s.Equal(float64(10), c.ProposeInterval.Seconds())
+		s.Equal(float64(8), c.PreconfDelay.Seconds())
 		s.Equal(1, len(c.LocalAddresses))
 		s.Equal(goldenTouchAddress, c.LocalAddresses[0])
 		s.Equal(5*time.Second, c.Timeout)
@@ -67,13 +73,16 @@ func (s *ProposerTestSuite) TestNewConfigFromCliContext() {
 	s.Nil(app.Run([]string{
 		"TestNewConfigFromCliContext",
 		"--" + flags.L1WSEndpoint.Name, l1Endpoint,
+		"--" + flags.L1BeaconEndpoint.Name, l1BeaconEndpoint,
+		"--" + flags.L1MevBoostEndpoint.Name, l1MevBoostEndpoint,
 		"--" + flags.L2HTTPEndpoint.Name, l2Endpoint,
 		"--" + flags.TaikoL1Address.Name, taikoL1,
 		"--" + flags.TaikoL2Address.Name, taikoL2,
+		"--" + flags.SequencerRegistryAddress.Name, sequencerRegistry,
 		"--" + flags.TaikoTokenAddress.Name, taikoToken,
 		"--" + flags.L1ProposerPrivKey.Name, encoding.GoldenTouchPrivKey,
 		"--" + flags.L2SuggestedFeeRecipient.Name, goldenTouchAddress.Hex(),
-		"--" + flags.ProposeInterval.Name, proposeInterval,
+		"--" + flags.PreconfDelay.Name, preconfDelay,
 		"--" + flags.TxPoolLocals.Name, goldenTouchAddress.Hex(),
 		"--" + flags.RPCTimeout.Name, rpcTimeout,
 		"--" + flags.TxGasLimit.Name, "100000",
@@ -101,8 +110,7 @@ func (s *ProposerTestSuite) TestNewConfigFromCliContextL2RecipErr() {
 	s.ErrorContains(app.Run([]string{
 		"TestNewConfigFromCliContextL2RecipErr",
 		"--" + flags.L1ProposerPrivKey.Name, encoding.GoldenTouchPrivKey,
-		"--" + flags.ProposeInterval.Name, proposeInterval,
-		"--" + flags.MinProposingInternal.Name, proposeInterval,
+		"--" + flags.PreconfDelay.Name, preconfDelay,
 		"--" + flags.L2SuggestedFeeRecipient.Name, "notAnAddress",
 	}), "invalid L2 suggested fee recipient address")
 }
@@ -116,9 +124,9 @@ func (s *ProposerTestSuite) TestNewConfigFromCliContextTxPoolLocalsErr() {
 	s.ErrorContains(app.Run([]string{
 		"TestNewConfigFromCliContextTxPoolLocalsErr",
 		"--" + flags.L1ProposerPrivKey.Name, encoding.GoldenTouchPrivKey,
-		"--" + flags.ProposeInterval.Name, proposeInterval,
-		"--" + flags.MinProposingInternal.Name, proposeInterval,
+		"--" + flags.PreconfDelay.Name, preconfDelay,
 		"--" + flags.L2SuggestedFeeRecipient.Name, goldenTouchAddress.Hex(),
+		"--" + flags.PreconfDelay.Name, preconfDelay,
 		"--" + flags.TxPoolLocals.Name, "notAnAddress",
 	}), "invalid account in --txpool.locals")
 }
@@ -127,14 +135,16 @@ func (s *ProposerTestSuite) SetupApp() *cli.App {
 	app := cli.NewApp()
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{Name: flags.L1WSEndpoint.Name},
+		&cli.StringFlag{Name: flags.L1BeaconEndpoint.Name},
+		&cli.StringFlag{Name: flags.L1MevBoostEndpoint.Name},
 		&cli.StringFlag{Name: flags.L2HTTPEndpoint.Name},
 		&cli.StringFlag{Name: flags.TaikoL1Address.Name},
 		&cli.StringFlag{Name: flags.TaikoL2Address.Name},
+		&cli.StringFlag{Name: flags.SequencerRegistryAddress.Name},
 		&cli.StringFlag{Name: flags.TaikoTokenAddress.Name},
 		&cli.StringFlag{Name: flags.L1ProposerPrivKey.Name},
 		&cli.StringFlag{Name: flags.L2SuggestedFeeRecipient.Name},
-		&cli.DurationFlag{Name: flags.MinProposingInternal.Name},
-		&cli.DurationFlag{Name: flags.ProposeInterval.Name},
+		&cli.StringFlag{Name: flags.PreconfDelay.Name},
 		&cli.StringFlag{Name: flags.TxPoolLocals.Name},
 		&cli.StringFlag{Name: flags.ProverEndpoints.Name},
 		&cli.Uint64Flag{Name: flags.OptimisticTierFee.Name},
