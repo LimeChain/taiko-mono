@@ -249,6 +249,7 @@ func (p *Proposer) eventLoop() {
 				l1Slots := make([]uint64, 0)
 				for _, slot := range p.eligibleSlots {
 					if slot.IsPrimary || slot.IsFallback {
+						log.Info("Adding eligible slot", "slot", slot.Slot, "isPrimary", slot.IsPrimary, "isFallback", slot.IsFallback)
 						l1Slots = append(l1Slots, slot.Slot)
 					}
 				}
@@ -274,11 +275,9 @@ func (p *Proposer) eventLoop() {
 			}
 
 			log.Debug(
-				"Checking if the proposer is eligible for the slots",
+				"Checking if the proposer is eligible for the slot",
 				"slot",
 				l1HeadSlot+1,
-				"slot",
-				l1HeadSlot+2,
 			)
 
 			nonce := p.txmgr.GetNonce()
@@ -291,7 +290,7 @@ func (p *Proposer) eventLoop() {
 				}
 
 				// Reset the nonce if the proposer nonce is ahead of the network nonce.
-				if AbsInt(int64(txmgrNonce)-int64(netNonce)) > 1 {
+				if AbsInt(int64(txmgrNonce)-int64(netNonce)) > 0 {
 					log.Warn("Proposer nonce is ahead of the network nonce", "network nonce", netNonce, "txmng nonce", txmgrNonce)
 					p.txmgr.ResetNonce()
 				}
@@ -305,32 +304,27 @@ func (p *Proposer) eventLoop() {
 			// If the proposer is a fallback for the slot, sends a propose operation to the taiko L11 contract.
 			if eligibleSlot.IsFallback {
 				metrics.ProposerProposeEpochCounter.Add(1)
-				log.Debug("Proposer is fallback for the L1 slot", "slot", l1HeadSlot+1)
+				log.Warn("Fallback for L1 slot", "slot", l1HeadSlot+1)
 
 				// Attempt a propose operation
 				if err := p.ProposeOp(p.ctx); err != nil {
 					log.Error("Propose operation error", "error", err)
 					continue
 				}
-			}
-
-			eligibleSlot, err = p.isEligibleForL1Slot(l1HeadSlot + 2)
-			if err != nil {
-				log.Error("Failed to check if the proposer is eligible for the L1 slot", "error", err)
-				continue
-			}
-			// If the proposer is a primary for the slot, propose the block to the mev-boost.
-			if eligibleSlot.IsPrimary {
+				// If the proposer is a primary for the slot, propose the block to the mev-boost.
+			} else if eligibleSlot.IsPrimary {
+				log.Warn("Primary for L1 slot", "slot", l1HeadSlot+1)
 				p.preconfDelay(l1HeadSlot)
 
 				metrics.ProposerProposeEpochCounter.Add(1)
-				log.Debug("Proposer is primary for the L1 slot", "slot", l1HeadSlot+2)
 
 				// Attempt a preconf operation
 				if err := p.PreconfOp(p.ctx); err != nil {
 					log.Error("Preconf operation error", "error", err)
 					continue
 				}
+			} else {
+				log.Error("Not primary or fallback")
 			}
 		}
 	}
@@ -340,7 +334,8 @@ func (p *Proposer) eventLoop() {
 func (p *Proposer) preconfDelay(l1HeadSlot uint64) {
 	currentSlotTS := p.RPC.L1Beacon.GetTimestampBySlot(l1HeadSlot)
 	secsInSlot := time.Now().UTC().Unix() - int64(currentSlotTS)
-	durationSec := int64(p.PreconfDelay) - secsInSlot
+	durationSec := int64(2) - secsInSlot
+	log.Warn("Preconf delay", "seconds", durationSec)
 	if durationSec > 0 {
 		time.Sleep(time.Duration(durationSec) * time.Second)
 	}
@@ -744,7 +739,7 @@ func (p *Proposer) PreconfOp(ctx context.Context) error {
 		"lastProposedAt", p.lastProposedAt,
 	)
 
-	txLists, err := p.fetchTxListToPropose(p.RPC.L1Beacon.GetL1HeadSlot() + 2)
+	txLists, err := p.fetchTxListToPropose(p.RPC.L1Beacon.GetL1HeadSlot() + 1)
 	if err != nil {
 		return err
 	}
@@ -814,9 +809,9 @@ func (p *Proposer) PreconfTxList(
 		return err
 	}
 
-	log.Debug("Setting validator mev boost constraints", "slot", p.RPC.L1Beacon.GetL1HeadSlot()+2)
+	log.Warn("Setting validator mev boost constraints", "slot", p.RPC.L1Beacon.GetL1HeadSlot()+1)
 
-	if err = p.RPC.L1MevBoost.SetConstraints(p.RPC.L1Beacon.GetL1HeadSlot()+2, newTx); err != nil {
+	if err = p.RPC.L1MevBoost.SetConstraints(p.RPC.L1Beacon.GetL1HeadSlot()+1, newTx); err != nil {
 		p.txmgr.DecNonce()
 		return fmt.Errorf("failed to set validator mev boost constraints: %w", err)
 	}
