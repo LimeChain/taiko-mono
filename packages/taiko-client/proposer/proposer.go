@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"math"
 
 	"fmt"
 	"math/big"
@@ -303,8 +304,11 @@ func (p *Proposer) eventLoop() {
 			}
 			// If the proposer is a fallback for the slot, sends a propose operation to the taiko L11 contract.
 			if eligibleSlot.IsFallback {
-				metrics.ProposerProposeEpochCounter.Add(1)
 				log.Warn("Fallback for L1 slot", "slot", l1HeadSlot+1)
+				// Here the delay could be more
+				p.proposeDelay(l1HeadSlot)
+
+				metrics.ProposerProposeEpochCounter.Add(1)
 
 				// Attempt a propose operation
 				if err := p.ProposeOp(p.ctx); err != nil {
@@ -330,14 +334,25 @@ func (p *Proposer) eventLoop() {
 	}
 }
 
+// proposeDelay waits for a specified delay before performing a propose operation.
+func (p *Proposer) proposeDelay(l1HeadSlot uint64) {
+	headSlotTimstamp := p.RPC.L1Beacon.GetTimestampBySlot(l1HeadSlot)
+	milisecondsInSlot := (time.Now().UTC().Unix() - int64(headSlotTimstamp)) * 1000
+	durationMiliseconds := math.Abs(float64(3500) - float64(milisecondsInSlot))
+	log.Warn("Delay till propose", "duration to wait in miliseconds", durationMiliseconds, "miliseconds in slot", milisecondsInSlot)
+	if durationMiliseconds > 0 {
+		time.Sleep(time.Duration(durationMiliseconds) * time.Millisecond)
+	}
+}
+
 // preconfDelay waits for a specified delay before performing a pre-confirmation operation.
 func (p *Proposer) preconfDelay(l1HeadSlot uint64) {
-	currentSlotTS := p.RPC.L1Beacon.GetTimestampBySlot(l1HeadSlot)
-	secsInSlot := time.Now().UTC().Unix() - int64(currentSlotTS)
-	durationSec := int64(2) - secsInSlot
-	log.Warn("Preconf delay", "seconds", durationSec)
-	if durationSec > 0 {
-		time.Sleep(time.Duration(durationSec) * time.Second)
+	headSlotTimstamp := p.RPC.L1Beacon.GetTimestampBySlot(l1HeadSlot)
+	milisecondsInSlot := (time.Now().UTC().Unix() - int64(headSlotTimstamp)) * 1000
+	durationMiliseconds := math.Abs(float64(2500) - float64(milisecondsInSlot))
+	log.Warn("Delay till preconf", "duration to wait in miliseconds", durationMiliseconds, "miliseconds in slot", milisecondsInSlot)
+	if durationMiliseconds > 0 {
+		time.Sleep(time.Duration(durationMiliseconds) * time.Millisecond)
 	}
 }
 
@@ -524,17 +539,6 @@ func (p *Proposer) handleDuty(
 		}
 	} else {
 		eligibleSlot.IsPrimary = true
-	}
-
-	// Check if the dutySlot is in the same epoch as the (dutySlot - 2).
-	// This is a temp fix for the commit-boost error "can only set constraints for current epoch".
-	slotsPerEpoch := p.RPC.L1Beacon.GetSlotsPerEpoch()
-	prevL1HeadSlotEpoch := (uint64(dutySlot) - 2) / slotsPerEpoch
-	l1SlotEpoch := uint64(dutySlot) / slotsPerEpoch
-	// If the duty slot is not in the same epoch, switch the role to fallback
-	if prevL1HeadSlotEpoch != l1SlotEpoch && eligibleSlot.IsPrimary {
-		eligibleSlot.IsPrimary = false
-		eligibleSlot.IsFallback = true
 	}
 
 	return eligibleSlot, nil
