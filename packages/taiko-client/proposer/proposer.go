@@ -302,10 +302,12 @@ func (p *Proposer) eventLoop() {
 				log.Error("Failed to check if the proposer is eligible for the L1 slot", "error", err)
 				continue
 			}
+
+			p.preconfDelay(l1HeadSlot)
+
 			// If the proposer is a fallback for the slot, sends a propose operation to the taiko L11 contract.
 			if eligibleSlot.IsFallback {
 				log.Warn("Fallback for L1 slot", "slot", l1HeadSlot+1)
-				p.proposeDelay(l1HeadSlot) // here the delay could be more
 
 				metrics.ProposerProposeEpochCounter.Add(1)
 
@@ -317,7 +319,6 @@ func (p *Proposer) eventLoop() {
 				// If the proposer is a primary for the slot, propose the block to the mev-boost.
 			} else if eligibleSlot.IsPrimary {
 				log.Warn("Primary for L1 slot", "slot", l1HeadSlot+1)
-				p.preconfDelay(l1HeadSlot)
 
 				metrics.ProposerProposeEpochCounter.Add(1)
 
@@ -330,16 +331,6 @@ func (p *Proposer) eventLoop() {
 				log.Error("Not primary or fallback")
 			}
 		}
-	}
-}
-
-func (p *Proposer) proposeDelay(l1HeadSlot uint64) {
-	headSlotTimestamp := p.RPC.L1Beacon.GetTimestampBySlot(l1HeadSlot)
-	millisecondsInSlot := (time.Now().UTC().UnixMilli() - int64(headSlotTimestamp)*1000)
-	durationMilliseconds := math.Abs(float64(3500) - float64(millisecondsInSlot))
-	log.Warn("Delay till preconf", "duration to wait in milliseconds", durationMilliseconds, "milliseconds in slot", millisecondsInSlot)
-	if durationMilliseconds > 0 {
-		time.Sleep(time.Duration(durationMilliseconds) * time.Millisecond)
 	}
 }
 
