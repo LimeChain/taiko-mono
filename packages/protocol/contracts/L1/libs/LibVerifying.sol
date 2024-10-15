@@ -32,7 +32,6 @@ library LibVerifying {
     error L1_INVALID_CONFIG();
     error L1_TRANSITION_ID_ZERO();
     error L1_TOO_LATE();
-    error L1_INVALID_PROPOSER();
 
     /// @dev Verifies up to N blocks.
     function verifyBlocks(
@@ -42,7 +41,7 @@ library LibVerifying {
         IAddressResolver _resolver,
         uint64 _maxBlocksToVerify
     )
-        public
+        internal
     {
         if (_maxBlocksToVerify == 0) {
             return;
@@ -85,12 +84,6 @@ library LibVerifying {
 
                 blk = _state.blocks[local.slot];
                 if (blk.blockId != local.blockId) revert L1_BLOCK_MISMATCH();
-
-                validateProposer(
-                    _state.blockProposers[local.slot],
-                    ISequencerRegistry(_resolver.resolve(LibStrings.B_SEQUENCER_REGISTRY, false)),
-                    blk.proposedIn
-                );
 
                 local.tid = LibUtils.getTransitionId(_state, blk, local.slot, local.blockHash);
                 // When `tid` is 0, it indicates that there is no proven
@@ -194,29 +187,6 @@ library LibVerifying {
                         local.syncStateRoot
                     );
                 }
-            }
-        }
-    }
-
-    /// @notice Validates if the given address is an active proposer
-    /// @param _proposer The address of the proposer
-    /// @param _sequencerRegistry The sequencer registry
-    /// @param _blockNumber The L2 block's proposedIn L1 block number.
-    function validateProposer(
-        address _proposer,
-        ISequencerRegistry _sequencerRegistry,
-        uint256 _blockNumber
-    )
-        internal
-        view
-    {
-        if (!_sequencerRegistry.isEligibleSigner(_proposer)) {
-            address fallbackProposer = _sequencerRegistry.fallbackSigner(_blockNumber);
-            if (
-                fallbackProposer == address(0)
-                    || !_sequencerRegistry.isEligibleSigner(fallbackProposer)
-            ) {
-                revert L1_INVALID_PROPOSER();
             }
         }
     }

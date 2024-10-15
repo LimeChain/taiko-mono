@@ -145,6 +145,14 @@ interface ISequencerRegistry {
     function isEligibleSigner(address signer) external view returns (bool);
 
     /**
+     *     Used to get the activation status of the sequencer with this signer address
+     *     in a given block number.
+     *     @param signer - the associated signer address of a sequencer
+     *     @param blockNumber - the target block number.
+     */
+    function isEligibleSignerIn(address signer, uint256 blockNumber) external view returns (bool);
+
+    /**
      *     Returns the data for a sequencer by its index
      */
     function sequencerByIndex(uint256 index)

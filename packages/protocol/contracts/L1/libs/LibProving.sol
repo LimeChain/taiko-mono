@@ -69,7 +69,9 @@ library LibProving {
     error L1_BLOCK_MISMATCH();
     error L1_CANNOT_CONTEST();
     error L1_INVALID_BLOCK_ID();
+    error L1_INVALID_BLOCK_TIMESTAMP();
     error L1_INVALID_PAUSE_STATUS();
+    error L1_INVALID_PROPOSER();
     error L1_INVALID_TIER();
     error L1_INVALID_TRANSITION();
     error L1_NOT_ASSIGNED_PROVER();
@@ -104,7 +106,7 @@ library LibProving {
         TaikoData.Transition memory _tran,
         TaikoData.TierProof memory _proof
     )
-        internal
+        public
     {
         // Make sure parentHash is not zero
         // To contest an existing transition, simply use any non-zero value as
@@ -215,6 +217,21 @@ library LibProving {
 
             IVerifier(verifier).verifyProof(ctx, _tran, _proof);
         }
+
+        // Verifies that the L2 block proposer was registered in the Sequencer registry
+        // and was either primary or fallback selected to propose the L2 block.
+        // Note: Last two arguments (_l1PubKey and _beaconProof) are mocked as the beacon proof
+        // validation is commented out, as it is not part of the PoC scope.
+        // They should be passed as additional parameters to the `TaikoL1.proveBlock._input`
+        // argument.
+        _verifyProposer(
+            _meta.sender,
+            ISequencerRegistry(_resolver.resolve(LibStrings.B_SEQUENCER_REGISTRY, false)),
+            blk.proposedAt,
+            blk.proposedIn,
+            "",
+            ""
+        );
 
         local.isTopTier = local.tier.contestBond == 0;
 
@@ -461,5 +478,72 @@ library LibProving {
         return _local.inProvingWindow && _local.tid == 1
             || _local.isTopTier && _proofData.length == 32
                 && bytes32(_proofData) == LibStrings.H_RETURN_LIVENESS_BOND;
+    }
+
+    /// @dev Verifies the proposer's associated L1 pub key was the L1 proposer.
+    ///
+    /// Checks the proposer was eligible in the sequencer registry for the given L1 block number.
+    /// Verifies the provided L1 pub key is the L1 proposer for the given slot.
+    /// Verifies the provided L1 pub key's L2 signer matches the proposer
+    /// by primary of fallback selection.
+    /// @notice Function logic is commented out for PoC.
+    /// @param _proposer The address of the L2 proposed block
+    /// @param _sequencerRegistry The sequencer registry.
+    /// @param _blockTimestamp The L2 blocks proposedAt L1 block timestamp.
+    /// @param _blockNumber The L2 block's proposedIn L1 block number.
+    /// @param _l1PubKey The given L1 validator pub key.
+    /// @param _l1BeaconProof The beacon proof that the L1 pub key was the selected L1 proposer for
+    /// the given slot.
+    function _verifyProposer(
+        address _proposer,
+        ISequencerRegistry _sequencerRegistry,
+        uint256 _blockTimestamp,
+        uint256 _blockNumber,
+        bytes memory _l1PubKey,
+        bytes memory _l1BeaconProof
+    )
+        internal
+        view
+    {
+        // Check that the proposer was eligible for the given block number.
+        // if (!_sequencerRegistry.isEligibleSignerIn(_proposer, _blockNumber)) {
+        //     revert L1_INVALID_PROPOSER();
+        // }
+
+        // bytes32 beaconRoot = _beaconSlotRoot(_blockTimestamp);
+
+        // Note: Out of scope
+        // Verifies `_l1PubKey` was the L1 proposer for the given slot.
+        // if (!verifyBeaconInclusion(_l1PubKey, _l1BeaconProof, _beaconRoot)) {
+        //     revert L1_INVALID_PROPOSER();
+        // }
+
+        // Note: Current checks are commented out as function arguments are mocked.
+        // Verifis `_l1PubKey` was primary or fallback selected.
+        // ISequencerRegistry.Sequencer memory sequencer = _sequencerRegistry.statusOf(_l1PubKey);
+
+        // if (sequencer.signer == address(0)) {
+        //     address fallbackProposer = _sequencerRegistry.fallbackSigner(_blockNumber);
+        //     if (_proposer != fallbackProposer) {
+        //         revert L1_INVALID_PROPOSER();
+        //     }
+        // } else {
+        //     if (_proposer != sequencer.signer) {
+        //         revert L1_INVALID_PROPOSER();
+        //     }
+        // }
+    }
+
+    /// @dev Returns the Beacon slot block root.
+    /// Reverts if the provided timestamp is invalid.
+    function _beaconSlotRoot(uint256 timestamp) internal view returns (bytes32) {
+        address beaconRootsContract = 0x000F3df6D732807Ef1319fB7B8bB8522d0Beac02;
+        (bool success, bytes memory result) = beaconRootsContract.staticcall(abi.encode(timestamp));
+
+        if (!success) {
+            revert L1_INVALID_BLOCK_TIMESTAMP();
+        }
+
+        return abi.decode(result, (bytes32));
     }
 }

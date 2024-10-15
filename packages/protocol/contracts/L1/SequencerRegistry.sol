@@ -265,6 +265,18 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
 
     /// @inheritdoc ISequencerRegistry
     function isEligibleSigner(address signer) external view override returns (bool) {
+        return isEligibleSignerIn(signer, block.number);
+    }
+
+    function isEligibleSignerIn(
+        address signer,
+        uint256 blockNumber
+    )
+        public
+        view
+        override
+        returns (bool)
+    {
         bytes32 pubkeyHash = sequencersToPubkeyHash[signer];
         if (pubkeyHash == bytes32(0)) {
             return false;
@@ -272,7 +284,7 @@ contract SequencerRegistry is EssentialContract, ISequencerRegistry {
 
         Sequencer memory sequencer = validators[pubkeyHash];
 
-        return _isEligibleSequencer(sequencer, block.number);
+        return _isEligibleSequencer(sequencer, blockNumber);
     }
 
     /// @inheritdoc ISequencerRegistry

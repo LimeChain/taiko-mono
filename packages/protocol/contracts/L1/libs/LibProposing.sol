@@ -173,7 +173,6 @@ library LibProposing {
 
         // Store the block in the ring buffer
         _state.blocks[b.numBlocks % _config.blockRingBufferSize] = blk;
-        _state.blockProposers[b.numBlocks % _config.blockRingBufferSize] = msg.sender;
 
         // Increment the counter (cursor) by 1.
         unchecked {
