@@ -91,6 +91,7 @@ contract SequencerRegistryTest is Test {
         registry.register(sequencer, metadata, authHash, signature, _genValidatorProof());
         assertTrue(registry.isRegistered(sequencer));
         assertFalse(registry.isEligibleSigner(sequencer));
+        assertFalse(registry.isEligibleSignerIn(sequencer, block.timestamp));
 
         ISequencerRegistry.Sequencer memory expect = ISequencerRegistry.Sequencer({
             pubkey: pubkey,
@@ -254,6 +255,7 @@ contract SequencerRegistryTest is Test {
         vm.roll(2);
 
         assertTrue(registry.isEligibleSigner(sequencer));
+        assertTrue(registry.isEligibleSignerIn(sequencer, block.number));
         assertTrue(registry.isEligible(pubkey));
     }
 

@@ -130,8 +130,6 @@ abstract contract TaikoL1TestBase is TaikoTest {
             mine(10);
         }
 
-        console.log("alo");
-
         gp.enableTaikoTokenAllowance(true);
         printVariables("init  ");
     }

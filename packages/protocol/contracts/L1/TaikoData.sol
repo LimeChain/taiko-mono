@@ -175,8 +175,6 @@ library TaikoData {
         SlotA slotA; // slot 5
         SlotB slotB; // slot 6
         mapping(bytes32 pubkeyHash => uint256 stake) stakes; // slot 7
-        mapping(uint64 blockId_mod_blockRingBufferSize => address proposer) blockProposers; // slot
-            // 8
-        uint256[42] __gap;
+        uint256[43] __gap;
     }
 }
